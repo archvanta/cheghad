@@ -27,11 +27,9 @@ test("تکرار، بودجه، پرداخت مستقل و بازگردانی ت
   await page
     .getByRole("button", { name: "برنامه و بودجه", exact: true })
     .click();
-  const rule = page
-    .locator("details")
-    .filter({
-      has: page.locator("summary", { hasText: "هزینه تکراری عمومی" }),
-    });
+  const rule = page.locator("details").filter({
+    has: page.locator("summary", { hasText: "هزینه تکراری عمومی" }),
+  });
   await rule.locator(":scope > summary").click();
   await rule.getByLabel("مبلغ جدید").fill("۳۰۰");
   await rule.getByRole("button", { name: "ذخیره مبلغ آینده" }).click();

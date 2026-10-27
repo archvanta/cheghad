@@ -3,6 +3,15 @@ test("قرارداد و قسط واقعی در نقد و بدهی یک بار م
   page,
 }) => {
   await page.goto("./");
+  await expect(
+    page.getByRole("heading", { name: "تصویر مالی تو" }),
+  ).toBeVisible();
+  if (
+    !(await page
+      .getByRole("button", { name: "بدهی‌ها", exact: true })
+      .isVisible())
+  )
+    await page.getByText("بیشتر", { exact: true }).click();
   await page.getByRole("button", { name: "بدهی‌ها", exact: true }).click();
   await page.getByLabel("عنوان قرارداد").fill("وام عمومی");
   await page.getByLabel("اعتباردهنده", { exact: true }).fill("اعتبار آزمایشی");

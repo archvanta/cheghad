@@ -1,3 +1,4 @@
+import { goldTotals } from "./gold";
 import { expandEntries } from "./recurring";
 import Decimal from "decimal.js";
 import { entrySchema, type Entry, type State } from "./model";
@@ -45,7 +46,7 @@ export function cashBalance(state: State, asOf: string) {
     state.entries.reduce(
       (s, e) =>
         s.add(new Decimal(paid(e, asOf)).mul(e.kind === "income" ? 1 : -1)),
-      new Decimal(state.openingBalance),
+      new Decimal(state.openingBalance).add(goldTotals(state, asOf).cashDelta),
     ),
   );
 }
@@ -93,8 +94,11 @@ export function summary(
     expense: total("expense"),
     installments: total("installment"),
     capacity: exact(new Decimal(projected).sub(state.reserve)),
-    netWorth: exact(new Decimal(cash).sub(debt)),
-    incomplete,
+    goldValue: goldTotals(state, asOf).value,
+    netWorth: exact(
+      new Decimal(cash).add(goldTotals(state, asOf).value).sub(debt),
+    ),
+    incomplete: incomplete + goldTotals(state, asOf).unknown,
   };
 }
 export function dailyForecast(state: State, from: string, to: string) {

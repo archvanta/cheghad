@@ -1,3 +1,4 @@
+import { goldPortfolio } from "../domain/gold";
 import Dexie, { type Table } from "dexie";
 import { emptyState, stateSchema, type State } from "../domain/model";
 class Database extends Dexie {
@@ -19,6 +20,7 @@ export async function saveState(state: State, recordUndo = true) {
     ...state,
     savedAt: new Date().toISOString(),
   });
+  goldPortfolio(data);
   await db.transaction("rw", db.documents, db.undo, async () => {
     const previous = await db.documents.get("main");
     if (recordUndo && previous)
@@ -41,7 +43,9 @@ export function migrate(value: unknown): State {
   )
     return stateSchema.parse({
       ...value,
-      version: 3,
+      version: 4,
+      goldAssets: [],
+      goldTransactions: [],
       debts: [],
       categories: [],
       rules: [],
@@ -54,8 +58,28 @@ export function migrate(value: unknown): State {
     "version" in value &&
     value.version === 2
   )
-    return stateSchema.parse({ ...value, version: 3, debts: [] });
-  return stateSchema.parse(value);
+    return stateSchema.parse({
+      ...value,
+      version: 4,
+      goldAssets: [],
+      goldTransactions: [],
+      debts: [],
+    });
+  if (
+    value &&
+    typeof value === "object" &&
+    "version" in value &&
+    value.version === 3
+  )
+    return stateSchema.parse({
+      ...value,
+      version: 4,
+      goldAssets: [],
+      goldTransactions: [],
+    });
+  const parsed = stateSchema.parse(value);
+  goldPortfolio(parsed);
+  return parsed;
 }
 
 export async function loadUndo() {

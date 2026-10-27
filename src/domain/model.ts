@@ -114,9 +114,51 @@ export const entrySchema = z
     if (new Set(e.payments.map((p) => p.id)).size !== e.payments.length)
       ctx.addIssue({ code: "custom", message: "پرداخت تکراری" });
   });
+export const goldAssetSchema = z
+  .object({
+    id: z.string().uuid(),
+    title: z.string().trim().min(1).max(100),
+    kind: z.enum(["18k", "24k", "melted", "digital", "coin"]),
+    unit: z.enum(["gram", "coin"]),
+    price: money.nullable(),
+    priceDate: isoDate.nullable(),
+    spreadBps: z.number().int().min(0).max(10000),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .refine(
+    (a) => (a.kind === "coin" ? a.unit === "coin" : a.unit === "gram"),
+    "واحد دارایی با نوع آن سازگار نیست",
+  );
+export const goldTransactionSchema = z
+  .object({
+    id: z.string().uuid(),
+    assetId: z.string().uuid(),
+    side: z.enum(["buy", "sell"]),
+    quantity: z
+      .string()
+      .regex(/^\d{1,9}(\.\d{1,6})?$/)
+      .refine((s) => /[1-9]/.test(s), "مقدار باید مثبت باشد"),
+    price: money.positive(),
+    commission: money,
+    workmanship: money,
+    tax: money,
+    other: money,
+    date: isoDate,
+    opening: z.boolean(),
+    notes: z.string().max(2000),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .refine(
+    (t) => !t.opening || t.side === "buy",
+    "فقط خرید می‌تواند موجودی اولیه باشد",
+  );
 export const stateSchema = z
   .object({
-    version: z.literal(3),
+    version: z.literal(4),
+    goldAssets: z.array(goldAssetSchema),
+    goldTransactions: z.array(goldTransactionSchema),
     debts: z.array(debtSchema),
     categories: z.array(categorySchema),
     rules: z.array(ruleSchema),
@@ -132,7 +174,13 @@ export const stateSchema = z
     savedAt: z.string().datetime().nullable(),
   })
   .superRefine((s, ctx) => {
-    for (const list of [s.categories, s.rules, s.debts])
+    for (const list of [
+      s.categories,
+      s.rules,
+      s.debts,
+      s.goldAssets,
+      s.goldTransactions,
+    ])
       if (new Set(list.map((x) => x.id)).size !== list.length)
         ctx.addIssue({ code: "custom", message: "شناسه تکراری" });
     for (const item of [...s.entries, ...s.rules])
@@ -147,6 +195,12 @@ export const stateSchema = z
         (e.kind !== "installment" || !s.debts.some((d) => d.id === e.debtId))
       )
         ctx.addIssue({ code: "custom", message: "قرارداد قسط نامعتبر است" });
+    for (const t of s.goldTransactions)
+      if (!s.goldAssets.some((a) => a.id === t.assetId))
+        ctx.addIssue({
+          code: "custom",
+          message: "دارایی تراکنش طلا نامعتبر است",
+        });
     const total = s.entries.reduce(
       (sum, e) => sum + BigInt(e.amount ?? 0),
       BigInt(s.openingBalance) + BigInt(s.reserve),
@@ -159,12 +213,16 @@ export const stateSchema = z
     if (new Set(s.entries.map((e) => e.id)).size !== s.entries.length)
       ctx.addIssue({ code: "custom", message: "شناسه رکورد تکراری" });
   });
+export type GoldAsset = z.infer<typeof goldAssetSchema>;
+export type GoldTransaction = z.infer<typeof goldTransactionSchema>;
 export type Debt = z.infer<typeof debtSchema>;
 export type Rule = z.infer<typeof ruleSchema>;
 export type Entry = z.infer<typeof entrySchema>;
 export type State = z.infer<typeof stateSchema>;
 export const emptyState = (): State => ({
-  version: 3,
+  version: 4,
+  goldAssets: [],
+  goldTransactions: [],
   debts: [],
   categories: [],
   rules: [],

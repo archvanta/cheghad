@@ -27,6 +27,8 @@ export const categorySchema = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1).max(60),
   budget: money.nullable(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
 });
 export const ruleSchema = z
   .object({
@@ -208,7 +210,10 @@ export const stateSchema = z
     ]),
     calendar: z.enum(["persian", "gregory"]),
     displayUnit: z.enum(["toman", "rial"]),
+    cashAlert: money.default(0),
+    paymentPriority: z.enum(["due", "smallest", "largest"]).default("due"),
     onboarded: z.boolean(),
+    revision: z.number().int().nonnegative().default(0),
     setupStep: z.number().int().min(0).max(5).default(0),
     goldAssets: z.array(goldAssetSchema),
     goldTransactions: z.array(goldTransactionSchema),
@@ -233,6 +238,7 @@ export const stateSchema = z
       s.debts,
       s.goldAssets,
       s.goldTransactions,
+      s.scenarios,
     ])
       if (new Set(list.map((x) => x.id)).size !== list.length)
         ctx.addIssue({ code: "custom", message: "شناسه تکراری" });
@@ -279,8 +285,11 @@ export const emptyState = (): State => ({
   horizon: 12,
   calendar: "persian",
   displayUnit: "toman",
+  cashAlert: 0,
+  paymentPriority: "due",
   onboarded: false,
   setupStep: 0,
+  revision: 0,
   goldAssets: [],
   goldTransactions: [],
   debts: [],

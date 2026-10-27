@@ -90,6 +90,13 @@ export function summary(
     cash,
     projected,
     debt,
+    received: exact(
+      state.entries
+        .filter((e) => e.kind === "income")
+        .flatMap((e) => e.payments)
+        .filter((p) => p.date >= start && p.date <= end && p.date <= asOf)
+        .reduce((s, p) => s.add(p.amount), new Decimal(0)),
+    ),
     income: total("income"),
     expense: total("expense"),
     installments: total("installment"),

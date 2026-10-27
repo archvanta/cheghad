@@ -122,9 +122,9 @@ export default function Debts({
                 name="principal"
                 inputMode="decimal"
                 defaultValue={
-                  editing?.principal === null
+                  !editing || editing.principal === null
                     ? ""
-                    : String((editing?.principal ?? 0) / 10)
+                    : String(editing.principal / 10)
                 }
               />
             </label>

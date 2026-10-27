@@ -51,9 +51,7 @@ button {
   border-radius: 12px;
   background: var(--raised);
   color: var(--ink);
-  transition:
-    background 0.18s,
-    transform 0.18s;
+  transition: transform 0.18s;
 }
 button:hover {
   border-color: var(--accent);
@@ -919,4 +917,25 @@ td {
 .setup > h2 {
   color: var(--accent);
   font-size: 17px;
+}
+@media (min-width: 701px) {
+  aside {
+    overflow-y: auto;
+  }
+  aside nav {
+    flex-shrink: 0;
+    gap: 4px;
+  }
+  aside nav button {
+    padding-block: 10px;
+  }
+  .privacy {
+    margin-top: 24px;
+  }
+}
+@media (max-width: 700px) {
+  .bento > .card:nth-child(6),
+  .bento > .card:nth-child(8) {
+    grid-column: span 2;
+  }
 }

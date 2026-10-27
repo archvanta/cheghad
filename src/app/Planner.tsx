@@ -171,6 +171,8 @@ export default function Planner({
               submit(e, async (f) => {
                 const c = categorySchema.parse({
                   id: crypto.randomUUID(),
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
                   name: f.get("name"),
                   budget: amount(f, "budget"),
                 });
@@ -419,6 +421,7 @@ export default function Planner({
                         x.id === c.id
                           ? categorySchema.parse({
                               ...c,
+                              updatedAt: new Date().toISOString(),
                               name: f.get("name"),
                               budget: amount(f, "budget"),
                             })

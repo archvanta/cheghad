@@ -181,3 +181,23 @@ it("تخصیص اضافه، دارایی بی‌قیمت و مبلغ بدهی ن
     ),
   ).toThrow();
 });
+it("آستانه هشدار و اولویت اقساط در فرض کاهش اسمی اثر می‌گذارند", () => {
+  const s = fixture();
+  s.cashAlert = 5000;
+  expect(project(s, "2026-01-01", 3).warnings.join()).toContain("آستانه");
+  s.entries.push({
+    ...s.entries[0],
+    id: crypto.randomUUID(),
+    amount: 100,
+    dueDate: "2026-02-01",
+  });
+  s.paymentPriority = "smallest";
+  const r = project(
+    s,
+    "2026-01-01",
+    3,
+    scenario({ debtId: s.debts[0].id, debtAmount: 100 }),
+  );
+  expect(r.months[0].installments).toBe(1000);
+  expect(r.months[1].installments).toBe(0);
+});

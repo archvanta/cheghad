@@ -40,7 +40,7 @@ import {
   type Entry,
 } from "../domain/model";
 import {
-  addPayment,
+  cashBalance,
   parseMoney,
   summary,
   remaining,
@@ -115,18 +115,45 @@ export default function App() {
     [ready, setReady] = useState(false),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  const [page, setPage] = useState(() => location.hash.slice(1) || "dashboard"),
+  const [page, setPage] = useState(() =>
+      [
+        "dashboard",
+        "entries",
+        "income",
+        "expenses",
+        "planner",
+        "debts",
+        "gold",
+        "simulator",
+        "calendar",
+        "forecast",
+        "reports",
+        "settings",
+      ].includes(location.hash.slice(1))
+        ? location.hash.slice(1)
+        : "dashboard",
+    ),
     [offset, setOffset] = useState(0),
     [editor, setEditor] = useState<Entry | "new" | null>(null),
     [payment, setPayment] = useState<Entry | null>(null),
     [filter, setFilter] = useState("all"),
     [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all"),
+    [monthFilter, setMonthFilter] = useState("all"),
+    [sort, setSort] = useState("date"),
+    [limit, setLimit] = useState(50);
+  useEffect(
+    () => setLimit(50),
+    [query, filter, page, categoryFilter, monthFilter, sort],
+  );
   useEffect(() => {
     const change = () =>
       setPage(
         [
           "dashboard",
           "entries",
+          "income",
+          "expenses",
           "planner",
           "debts",
           "gold",
@@ -183,12 +210,17 @@ export default function App() {
           ].slice(0, 100),
         },
         !isUndo,
+        state.revision,
       );
       setUndo(isUndo ? null : state);
       setState(saved);
       return true;
-    } catch {
-      setError("ذخیره انجام نشد. فضای مرورگر یا اعتبار داده را بررسی کنید.");
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message.startsWith("تعارض ذخیره")
+          ? err.message
+          : "ذخیره انجام نشد. فضای مرورگر یا اعتبار داده را بررسی کنید.",
+      );
       return false;
     } finally {
       setBusy(false);
@@ -207,6 +239,16 @@ export default function App() {
     }).format(new Date(d + "T12:00:00Z"));
   const month = jalaliMonth(today(), offset),
     r = summary(state, month.start, month.end, today());
+  const priorCash = cashBalance(state, jalaliMonth(today(), -1).end);
+  const followingMonth = jalaliMonth(today(), 1);
+  const nextMonthInstallments = state.entries
+    .filter(
+      (e) =>
+        e.kind === "installment" &&
+        e.dueDate >= followingMonth.start &&
+        e.dueDate <= followingMonth.end,
+    )
+    .reduce((s, e) => s + remaining(e, today()), 0);
   const forecast = dailyForecast(
     state,
     today(),
@@ -219,11 +261,28 @@ export default function App() {
   const next = state.entries
     .filter((e) => e.kind === "installment" && remaining(e, today()) > 0)
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
-  const visible = expandEntries(state, jalaliMonth(today(), 12).end)
+  const effectiveFilter =
+    page === "income" ? "income" : page === "expenses" ? "expense" : filter;
+  const filtered = expandEntries(state, jalaliMonth(today(), 12).end)
     .filter(
-      (e) => (filter === "all" || e.kind === filter) && e.title.includes(query),
+      (e) =>
+        (effectiveFilter === "all" || e.kind === effectiveFilter) &&
+        (e.title + " " + (e.source ?? "") + " " + (e.notes ?? "")).includes(
+          query,
+        ) &&
+        (categoryFilter === "all" || e.categoryId === categoryFilter) &&
+        (monthFilter === "all" ||
+          (e.dueDate >= monthFilter &&
+            e.dueDate <= jalaliMonth(monthFilter).end)),
     )
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    .sort((a, b) =>
+      sort === "amount"
+        ? (b.amount ?? -1) - (a.amount ?? -1)
+        : sort === "title"
+          ? a.title.localeCompare(b.title, "fa")
+          : a.dueDate.localeCompare(b.dueDate) * (sort === "reverse" ? -1 : 1),
+    );
+  const visible = filtered.slice(0, limit);
   const amountInput = (
     name: string,
     label: string,
@@ -291,10 +350,13 @@ export default function App() {
         payments: existing?.payments ?? [],
       });
       if (
-        await commit({
-          ...state,
-          entries: [...state.entries.filter((x) => x.id !== e.id), e],
-        })
+        await commit(
+          {
+            ...state,
+            entries: [...state.entries.filter((x) => x.id !== e.id), e],
+          },
+          `${existing ? "ویرایش" : "ثبت"} ${e.title}: ${existing ? (existing.amount === null ? "نامشخص" : money(existing.amount)) : "جدید"} ← ${e.amount === null ? "نامشخص" : money(e.amount)} ${unit}`,
+        )
       )
         setEditor(null);
     } catch {
@@ -333,6 +395,8 @@ export default function App() {
               ["debts", "بدهی‌ها", Wallet],
               ["gold", "طلا و دلار", Wallet],
               ["simulator", "آزمایشگاه تصمیم", Wallet],
+              ["income", "درآمدها", List],
+              ["expenses", "هزینه‌ها", List],
               ["calendar", "تقویم", List],
               ["forecast", "پیش‌بینی", List],
               ["reports", "گزارش‌ها", List],
@@ -357,6 +421,8 @@ export default function App() {
                   ["debts", "بدهی‌ها"],
                   ["gold", "طلا و دلار"],
                   ["simulator", "آزمایشگاه تصمیم"],
+                  ["income", "درآمدها"],
+                  ["expenses", "هزینه‌ها"],
                   ["calendar", "تقویم"],
                   ["forecast", "پیش‌بینی"],
                   ["reports", "گزارش‌ها"],
@@ -441,6 +507,8 @@ export default function App() {
                 {{
                   dashboard: "تصویر مالی تو",
                   entries: "دفتر مالی",
+                  income: "درآمدها",
+                  expenses: "هزینه‌ها",
                   planner: "برنامه و بودجه",
                   debts: "بدهی‌ها",
                   gold: "طلا و دلار",
@@ -462,6 +530,12 @@ export default function App() {
           </div>
           {!state.onboarded && page === "dashboard" && (
             <Setup state={state} commit={commit} busy={busy} />
+          )}
+          {page === "dashboard" && r.projected < state.cashAlert && (
+            <p className="warning">
+              مانده پیش‌بینی‌شده از آستانه هشدار {money(state.cashAlert)} {unit}{" "}
+              کمتر است.
+            </p>
           )}
           {page === "dashboard" && (
             <>
@@ -519,7 +593,10 @@ export default function App() {
                       {money(r.projected)}
                     </strong>
                   </div>
-                  <small>موجودی افتتاحیه + دریافت واقعی − پرداخت واقعی</small>
+                  <small>
+                    موجودی افتتاحیه + دریافت واقعی − پرداخت واقعی؛ تغییر نسبت به
+                    پایان ماه قبل {money(r.cash - priorCash)} {unit}
+                  </small>
                 </Card>
                 <Card title="ظرفیت سرمایه‌گذاری">
                   <span className="tag">بر مبنای تعهدات ثبت‌شده</span>
@@ -560,7 +637,10 @@ export default function App() {
                 <Card title="درآمد ماه انتخاب‌شده">
                   <ArrowDownLeft className="positive" />
                   <div className="metric">{money(r.income)}</div>
-                  <p>شامل دریافتی و مورد انتظار؛ به معنی موجودی نقد نیست.</p>
+                  <p>
+                    شامل دریافتی و مورد انتظار؛ به معنی موجودی نقد نیست. دریافت
+                    واقعی در بازه: {money(r.received)} {unit}.
+                  </p>
                 </Card>
                 <Card title="هزینه و اقساط ماه">
                   <ArrowUpRight className="negative" />
@@ -572,6 +652,20 @@ export default function App() {
                   </p>
                 </Card>
                 <Card title="سلامت نقدینگی">
+                  <p>
+                    نسبت اقساط برنامه ماه به درآمد برنامه ماه:{" "}
+                    {r.income
+                      ? new Intl.NumberFormat(state.digits, {
+                          maximumFractionDigits: 1,
+                        }).format(
+                          new Decimal(r.installments)
+                            .div(r.income)
+                            .mul(100)
+                            .toNumber(),
+                        ) + "٪"
+                      : "درآمد معلوم نیست"}
+                    ؛ فرمول: اقساط ÷ درآمد × ۱۰۰.
+                  </p>
                   <div
                     className={`metric ${forecast.minimum < 0 ? "negative" : "positive"}`}
                   >
@@ -640,6 +734,13 @@ export default function App() {
                   </details>
                 </Card>
                 <Card title="تعهدات و دارایی">
+                  <p>
+                    مانده اقساط ماه آینده: {money(nextMonthInstallments)} {unit}
+                  </p>
+                  <p>
+                    مجموع نقد و دارایی ثبت‌شده:{" "}
+                    {money(r.cash + r.goldValue + r.usdValue)} {unit}
+                  </p>
                   <dl>
                     <div>
                       <dt>ارزش مرجع دلار</dt>
@@ -666,7 +767,7 @@ export default function App() {
               </div>
             </>
           )}
-          {page === "entries" && (
+          {["entries", "income", "expenses"].includes(page) && (
             <>
               <div className="filters">
                 <label>
@@ -680,7 +781,8 @@ export default function App() {
                 <label>
                   نوع
                   <select
-                    value={filter}
+                    value={effectiveFilter}
+                    disabled={page !== "entries"}
                     onChange={(e) => setFilter(e.target.value)}
                   >
                     <option value="all">همه</option>
@@ -692,9 +794,58 @@ export default function App() {
                   </select>
                 </label>
               </div>
+              <div className="filters">
+                <label>
+                  دسته دفتر
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                  >
+                    <option value="all">همه دسته‌ها</option>
+                    {state.categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  ماه دفتر
+                  <select
+                    value={monthFilter}
+                    onChange={(e) => setMonthFilter(e.target.value)}
+                  >
+                    <option value="all">همه ماه‌ها</option>
+                    {Array.from({ length: 37 }, (_, i) =>
+                      jalaliMonth(today(), i - 12),
+                    ).map((m) => (
+                      <option value={m.start} key={m.start}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  مرتب‌سازی
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                  >
+                    <option value="date">سررسید نزدیک‌تر</option>
+                    <option value="reverse">سررسید دورتر</option>
+                    <option value="amount">بیشترین مبلغ</option>
+                    <option value="title">عنوان</option>
+                  </select>
+                </label>
+              </div>
               <div className="entry-list">
                 {!visible.length && (
                   <p className="empty">رکوردی برای نمایش وجود ندارد.</p>
+                )}
+                {filtered.length > limit && (
+                  <button onClick={() => setLimit(limit + 50)}>
+                    نمایش ۵۰ رکورد بیشتر (از {filtered.length})
+                  </button>
                 )}
                 {visible.map((e) => (
                   <article className="entry card" key={e.id}>
@@ -796,7 +947,37 @@ export default function App() {
                         <summary>تاریخچه پرداخت / دریافت</summary>
                         {e.payments.map((p) => (
                           <p key={p.id}>
-                            {formatDate(p.date)} · {money(p.amount)} {unit}
+                            {formatDate(p.date)} · {money(p.amount)} {unit}{" "}
+                            <button
+                              disabled={busy}
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    "این دریافت یا پرداخت برگشت داده شود؟ اثر نقدی آن هم حذف می‌شود.",
+                                  )
+                                )
+                                  void commit(
+                                    {
+                                      ...state,
+                                      entries: state.entries.map((x) =>
+                                        x.id === e.id
+                                          ? {
+                                              ...x,
+                                              payments: x.payments.filter(
+                                                (item) => item.id !== p.id,
+                                              ),
+                                              updatedAt:
+                                                new Date().toISOString(),
+                                            }
+                                          : x,
+                                      ),
+                                    },
+                                    "برگشت پرداخت: " + e.title,
+                                  );
+                              }}
+                            >
+                              برگشت این پرداخت
+                            </button>
                           </p>
                         ))}
                       </details>
@@ -868,6 +1049,10 @@ export default function App() {
                         ...state,
                         openingBalance: parseMoney(String(f.get("opening"))),
                         reserve: parseMoney(String(f.get("reserve"))),
+                        cashAlert: parseMoney(String(f.get("cashAlert"))),
+                        paymentPriority: f.get(
+                          "paymentPriority",
+                        ) as State["paymentPriority"],
                         digits: f.get("digits") as State["digits"],
                         horizon: Number(f.get("horizon")) as State["horizon"],
                         calendar: f.get("calendar") as State["calendar"],
@@ -901,6 +1086,26 @@ export default function App() {
                       <option value="en-US">لاتین</option>
                     </select>
                   </label>
+                  {amountInput(
+                    "cashAlert",
+                    "آستانه هشدار نقد (تومان)",
+                    String(state.cashAlert / 10),
+                  )}
+                  <label>
+                    اولویت کاهش اقساط در سناریو
+                    <select
+                      name="paymentPriority"
+                      defaultValue={state.paymentPriority}
+                    >
+                      <option value="due">سررسید نزدیک‌تر</option>
+                      <option value="smallest">کمترین مانده قسط</option>
+                      <option value="largest">بیشترین مانده قسط</option>
+                    </select>
+                  </label>
+                  <p>
+                    این اولویت روی روش فرضی کاهش اسمی اقساط در آزمایشگاه اثر
+                    دارد؛ پرداخت واقعی خودکار نیست.
+                  </p>
                   <label>
                     افق پیش‌بینی پیش‌فرض
                     <select name="horizon" defaultValue={state.horizon}>

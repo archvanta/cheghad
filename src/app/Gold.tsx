@@ -135,7 +135,7 @@ export default function Gold({
                 name="price"
                 inputMode="decimal"
                 defaultValue={
-                  asset?.price === null ? "" : String((asset?.price ?? 0) / 10)
+                  !asset || asset.price === null ? "" : String(asset.price / 10)
                 }
               />
             </label>
@@ -314,6 +314,11 @@ export default function Gold({
               {a.unrealized === null ? "نامعلوم" : money(a.unrealized)}؛ سود
               فروش {money(a.realized)} {unit}؛ بازده مانده{" "}
               {a.returnPercent ?? "—"}٪
+            </p>
+            <p>
+              نرخ سر‌به‌سر پس از اختلاف فروش، بدون هزینه ثابت فروش آینده:{" "}
+              {a.breakEven === null ? "نامعلوم" : money(a.breakEven)} {unit}{" "}
+              برای هر واحد.
             </p>
             <p>قیمت دستی · تاریخ {a.priceDate ?? "تعیین نشده"}</p>
             <button

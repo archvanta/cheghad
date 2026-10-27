@@ -36,3 +36,16 @@ it("حذف همه اطلاعات، نسخه Undo را هم پاک می‌کند"
   expect(await db.documents.count()).toBe(0);
   expect(await loadUndo()).toBeNull();
 });
+it("ذخیره هم‌زمان از نسخه قدیمی، داده جدید را بازنویسی نمی‌کند", async () => {
+  await db.documents.clear();
+  const first = await saveState(
+    { ...emptyState(), openingBalance: 10 },
+    true,
+    0,
+  );
+  await saveState({ ...first, openingBalance: 20 }, true, first.revision);
+  await expect(
+    saveState({ ...first, openingBalance: 30 }, true, first.revision),
+  ).rejects.toThrow("تعارض");
+  expect((await loadState()).openingBalance).toBe(20);
+});

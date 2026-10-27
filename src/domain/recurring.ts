@@ -5,6 +5,7 @@ import {
   type Rule,
   jalaliMonth,
   isoDate,
+  today,
 } from "./model";
 const dayAfter = (s: string, days: number) => {
   const d = new Date(s + "T12:00:00Z");
@@ -111,8 +112,7 @@ export function budgetReport(state: State, start: string, end: string) {
 /** Preserve every earlier occurrence before replacing a schedule from today onward. */
 export function replaceSchedule(state: State, rule: Rule, from: string): State {
   isoDate.parse(from);
-  if (from < new Date().toISOString().slice(0, 10))
-    throw new Error("برنامه گذشته قابل بازنویسی نیست");
+  if (from < today()) throw new Error("برنامه گذشته قابل بازنویسی نیست");
   const old = state.rules.find((r) => r.id === rule.id);
   if (!old) throw new Error("قاعده پیدا نشد");
   const previous = expandEntries({ ...state, rules: [old] }, from).filter(

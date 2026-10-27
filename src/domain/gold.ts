@@ -69,6 +69,15 @@ export function goldPortfolio(state: State, asOf = "9999-12-31") {
       quantity: quantity.toFixed(),
       cost: roundRial(cost),
       average: quantity.isZero() ? null : roundRial(cost.div(quantity)),
+      breakEven:
+        quantity.isZero() || asset.spreadBps === 10000
+          ? null
+          : roundRial(
+              cost
+                .div(quantity)
+                .mul(10000)
+                .div(10000 - asset.spreadBps),
+            ),
       market,
       liquidation,
       unrealized: market === null ? null : roundRial(new D(market).sub(cost)),

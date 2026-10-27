@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import {
+  stateSchema,
   type State,
   type Scenario,
   type GoldTransaction,
@@ -69,7 +70,7 @@ export function project(
   scenario?: Scenario,
 ) {
   if (![3, 6, 12, 18, 24].includes(horizon)) throw Error("افق نامعتبر");
-  let working = structuredClone(state);
+  let working = stateSchema.parse(state);
   const last = jalaliMonth(from, horizon - 1).end;
   working.entries = expandEntries(working, last);
   const warnings: string[] = [];
@@ -108,7 +109,11 @@ export function project(
         );
         let budget = scenario.debtAmount;
         for (const e of linked.sort((a, b) =>
-          a.dueDate.localeCompare(b.dueDate),
+          state.paymentPriority === "smallest"
+            ? remaining(a, from) - remaining(b, from)
+            : state.paymentPriority === "largest"
+              ? remaining(b, from) - remaining(a, from)
+              : a.dueDate.localeCompare(b.dueDate),
         )) {
           const amount = Math.min(budget, remaining(e, from));
           if (amount > 0) {
@@ -222,6 +227,8 @@ export function project(
       minimum,
     });
   }
+  if (minimum < state.cashAlert)
+    warnings.push("حداقل نقد از آستانه هشدار تنظیم‌شده کمتر است");
   const final = months.at(-1)!;
   return {
     months,

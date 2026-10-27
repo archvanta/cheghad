@@ -15,7 +15,11 @@ export async function loadState() {
   const record = await db.documents.get("main");
   return record ? migrate(record.data) : emptyState();
 }
-export async function saveState(state: State, recordUndo = true) {
+export async function saveState(
+  state: State,
+  recordUndo = true,
+  expectedRevision?: number,
+) {
   const data = stateSchema.parse({
     ...state,
     savedAt: new Date().toISOString(),
@@ -23,6 +27,15 @@ export async function saveState(state: State, recordUndo = true) {
   goldPortfolio(data);
   await db.transaction("rw", db.documents, db.undo, async () => {
     const previous = await db.documents.get("main");
+    const current = previous ? migrate(previous.data) : null;
+    if (
+      expectedRevision !== undefined &&
+      (current?.revision ?? 0) !== expectedRevision
+    )
+      throw Error(
+        "تعارض ذخیره: داده‌ها در پنجره دیگر تغییر کرده‌اند؛ صفحه را دوباره باز کن.",
+      );
+    data.revision = (current?.revision ?? 0) + 1;
     if (recordUndo && previous)
       await db.undo.put({ id: "main", data: migrate(previous.data) });
     else await db.undo.delete("main");

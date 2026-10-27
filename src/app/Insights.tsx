@@ -336,7 +336,12 @@ export default function Insights({
           </div>
         </details>
       </section>
-      <div className="table-scroll">
+      <div
+        className="table-scroll"
+        tabIndex={0}
+        role="region"
+        aria-label="جدول قابل پیمایش پیش‌بینی"
+      >
         <table>
           <caption>
             پیش‌بینی ماه‌های شمسی از امروز؛ تمام مبالغ براساس واحد نمایش

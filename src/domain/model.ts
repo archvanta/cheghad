@@ -51,10 +51,24 @@ export const ruleSchema = z
       r.revisions.every((v, i) => i === 0 || v.from > r.revisions[i - 1].from),
     "نسخه‌های مبلغ باید مرتب و یکتا باشند",
   );
+export const debtSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().trim().min(1).max(100),
+  provider: z.string().max(100),
+  reference: z.string().max(100),
+  principal: money.nullable(),
+  allowEarly: z.enum(["yes", "no", "unknown"]),
+  allowPartial: z.enum(["yes", "no", "unknown"]),
+  notes: z.string().max(2000),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
 export const entrySchema = z
   .object({
     id: z.string().uuid(),
     ...metadata,
+    debtId: z.string().uuid().optional(),
+    cancelled: z.boolean().optional(),
     ruleId: z.string().uuid().optional(),
     categoryId: z.string().uuid().optional(),
     title: z.string().trim().min(1).max(100),
@@ -67,7 +81,8 @@ export const entrySchema = z
     payments: z.array(
       z.object({
         id: z.string().uuid(),
-        amount: money.positive(),
+        amount: money,
+        reduction: money.optional(),
         date: isoDate,
       }),
     ),
@@ -75,7 +90,22 @@ export const entrySchema = z
   .superRefine((e, ctx) => {
     if (e.payments.length && e.amount === null)
       ctx.addIssue({ code: "custom", message: "ابتدا مبلغ را مشخص کنید" });
-    const sum = e.payments.reduce((s, p) => s + BigInt(p.amount), 0n);
+    const sum = e.payments.reduce(
+      (s, p) => s + BigInt(p.reduction ?? p.amount),
+      0n,
+    );
+    if (e.payments.some((p) => p.amount === 0 && !p.reduction))
+      ctx.addIssue({ code: "custom", message: "پرداخت صفر مجاز نیست" });
+    if (e.cancelled && e.payments.length)
+      ctx.addIssue({
+        code: "custom",
+        message: "قسط دارای پرداخت قابل لغو نیست",
+      });
+    if (
+      e.kind !== "installment" &&
+      e.payments.some((p) => p.reduction !== undefined)
+    )
+      ctx.addIssue({ code: "custom", message: "تخفیف فقط برای بدهی مجاز است" });
     if (sum > BigInt(e.amount ?? 0))
       ctx.addIssue({
         code: "custom",
@@ -86,7 +116,8 @@ export const entrySchema = z
   });
 export const stateSchema = z
   .object({
-    version: z.literal(2),
+    version: z.literal(3),
+    debts: z.array(debtSchema),
     categories: z.array(categorySchema),
     rules: z.array(ruleSchema),
     excludedEntryIds: z.array(z.string().uuid()),
@@ -101,7 +132,7 @@ export const stateSchema = z
     savedAt: z.string().datetime().nullable(),
   })
   .superRefine((s, ctx) => {
-    for (const list of [s.categories, s.rules])
+    for (const list of [s.categories, s.rules, s.debts])
       if (new Set(list.map((x) => x.id)).size !== list.length)
         ctx.addIssue({ code: "custom", message: "شناسه تکراری" });
     for (const item of [...s.entries, ...s.rules])
@@ -110,6 +141,12 @@ export const stateSchema = z
         !s.categories.some((c) => c.id === item.categoryId)
       )
         ctx.addIssue({ code: "custom", message: "دسته نامعتبر" });
+    for (const e of s.entries)
+      if (
+        e.debtId &&
+        (e.kind !== "installment" || !s.debts.some((d) => d.id === e.debtId))
+      )
+        ctx.addIssue({ code: "custom", message: "قرارداد قسط نامعتبر است" });
     const total = s.entries.reduce(
       (sum, e) => sum + BigInt(e.amount ?? 0),
       BigInt(s.openingBalance) + BigInt(s.reserve),
@@ -122,11 +159,13 @@ export const stateSchema = z
     if (new Set(s.entries.map((e) => e.id)).size !== s.entries.length)
       ctx.addIssue({ code: "custom", message: "شناسه رکورد تکراری" });
   });
+export type Debt = z.infer<typeof debtSchema>;
 export type Rule = z.infer<typeof ruleSchema>;
 export type Entry = z.infer<typeof entrySchema>;
 export type State = z.infer<typeof stateSchema>;
 export const emptyState = (): State => ({
-  version: 2,
+  version: 3,
+  debts: [],
   categories: [],
   rules: [],
   excludedEntryIds: [],

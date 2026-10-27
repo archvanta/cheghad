@@ -23,8 +23,16 @@ export const paid = (entry: Entry, asOf = "9999-12-31") =>
       .filter((p) => p.date <= asOf)
       .reduce((s, p) => s.add(p.amount), new Decimal(0)),
   );
-export const remaining = (e: Entry, asOf?: string) =>
-  exact(new Decimal(e.amount ?? 0).sub(paid(e, asOf)));
+export const remaining = (e: Entry, asOf = "9999-12-31") =>
+  e.cancelled
+    ? 0
+    : exact(
+        new Decimal(e.amount ?? 0).sub(
+          e.payments
+            .filter((p) => p.date <= asOf)
+            .reduce((s, p) => s.add(p.reduction ?? p.amount), new Decimal(0)),
+        ),
+      );
 export function addPayment(entry: Entry, amount: number, date: string): Entry {
   return entrySchema.parse({
     ...entry,
@@ -49,7 +57,7 @@ export function summary(
 ) {
   const expanded = expandEntries(state, end);
   const entries = expanded.filter(
-    (e) => e.dueDate >= start && e.dueDate <= end,
+    (e) => !e.cancelled && e.dueDate >= start && e.dueDate <= end,
   );
   const total = (kind: Entry["kind"]) =>
     exact(
@@ -59,7 +67,7 @@ export function summary(
     );
   const cash = cashBalance(state, asOf);
   // Overdue unpaid records remain obligations. Future receipts remain projections, never cash.
-  const outstanding = expanded.filter((e) => e.dueDate <= end);
+  const outstanding = expanded.filter((e) => !e.cancelled && e.dueDate <= end);
   const projected = exact(
     outstanding.reduce(
       (s, e) =>

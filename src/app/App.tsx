@@ -1,3 +1,5 @@
+import Debts from "./Debts";
+import { payDebtEntry } from "../domain/debts";
 import { stateSchema } from "../domain/model";
 import Planner from "./Planner";
 import { expandEntries } from "../domain/recurring";
@@ -224,6 +226,8 @@ export default function App() {
       const amount = String(f.get("amount")).trim();
       const e = entrySchema.parse({
         id: existing?.id ?? crypto.randomUUID(),
+        debtId: String(f.get("debtId") || "") || undefined,
+        cancelled: existing?.cancelled,
         ruleId: existing?.ruleId,
         categoryId: String(f.get("categoryId") || "") || undefined,
         createdAt: existing?.createdAt ?? now,
@@ -278,6 +282,7 @@ export default function App() {
             ["dashboard", "داشبورد", LayoutDashboard],
             ["entries", "دفتر مالی", List],
             ["planner", "برنامه و بودجه", List],
+            ["debts", "بدهی‌ها", Wallet],
             ["settings", "تنظیمات", Settings],
           ].map(([id, label, Icon]) => (
             <button
@@ -356,7 +361,9 @@ export default function App() {
                   ? "دفتر مالی"
                   : page === "planner"
                     ? "برنامه و بودجه"
-                    : "تنظیمات و داده‌ها"}
+                    : page === "debts"
+                      ? "بدهی‌ها"
+                      : "تنظیمات و داده‌ها"}
             </h1>
           </div>
           <button
@@ -602,15 +609,17 @@ export default function App() {
                     {e.notes && <p>{e.notes}</p>}
                     <p>
                       {dateLabel(e.dueDate)} ·{" "}
-                      {!e.confirmed
-                        ? "نیازمند تأیید"
-                        : e.amount === null
-                          ? "نیازمند تکمیل"
-                          : remaining(e) === 0
-                            ? "تسویه‌شده"
-                            : paid(e) > 0
-                              ? "پرداخت جزئی"
-                              : "تسویه‌نشده"}
+                      {e.cancelled
+                        ? "لغوشده"
+                        : !e.confirmed
+                          ? "نیازمند تأیید"
+                          : e.amount === null
+                            ? "نیازمند تکمیل"
+                            : remaining(e) === 0
+                              ? "تسویه‌شده"
+                              : paid(e) > 0
+                                ? "پرداخت جزئی"
+                                : "تسویه‌نشده"}
                     </p>
                   </div>
                   <div>
@@ -625,6 +634,33 @@ export default function App() {
                     </p>
                   </div>
                   <div className="actions">
+                    {e.kind === "installment" && !e.payments.length && (
+                      <button
+                        disabled={busy}
+                        onClick={() => {
+                          if (
+                            confirm(
+                              e.cancelled
+                                ? "قسط دوباره فعال شود؟"
+                                : "قسط لغو شود؟ مبلغ و سابقه آن حفظ می‌شود.",
+                            )
+                          )
+                            void commit(
+                              {
+                                ...state,
+                                entries: state.entries.map((x) =>
+                                  x.id === e.id
+                                    ? { ...e, cancelled: !e.cancelled }
+                                    : x,
+                                ),
+                              },
+                              "تغییر وضعیت قسط",
+                            );
+                        }}
+                      >
+                        {e.cancelled ? "فعال‌سازی قسط" : "لغو قسط"}
+                      </button>
+                    )}
                     <button onClick={() => setEditor(e)} disabled={busy}>
                       ویرایش
                     </button>
@@ -668,6 +704,9 @@ export default function App() {
               ))}
             </div>
           </>
+        )}
+        {page === "debts" && (
+          <Debts state={state} commit={commit} busy={busy} money={money} />
         )}
         {page === "planner" && (
           <Planner state={state} commit={commit} busy={busy} money={money} />
@@ -819,6 +858,20 @@ export default function App() {
               />
             </label>
             <label>
+              قرارداد (فقط برای قسط)
+              <select
+                name="debtId"
+                defaultValue={editor === "new" ? "" : (editor.debtId ?? "")}
+              >
+                <option value="">بدون قرارداد</option>
+                {state.debts.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
               دسته‌بندی
               <select
                 name="categoryId"
@@ -896,7 +949,8 @@ export default function App() {
                 const f = new FormData(ev.currentTarget);
                 const date = String(f.get("date"));
                 if (date > today()) throw Error();
-                const updated = addPayment(
+                const updated = payDebtEntry(
+                  state,
                   payment,
                   parseMoney(String(f.get("amount"))),
                   date,

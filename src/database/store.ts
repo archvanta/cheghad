@@ -41,12 +41,20 @@ export function migrate(value: unknown): State {
   )
     return stateSchema.parse({
       ...value,
-      version: 2,
+      version: 3,
+      debts: [],
       categories: [],
       rules: [],
       excludedEntryIds: [],
       history: [],
     });
+  if (
+    value &&
+    typeof value === "object" &&
+    "version" in value &&
+    value.version === 2
+  )
+    return stateSchema.parse({ ...value, version: 3, debts: [] });
   return stateSchema.parse(value);
 }
 

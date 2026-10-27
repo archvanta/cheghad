@@ -7,13 +7,30 @@ test("Bento dashboard and both budget comparisons work on desktop and mobile", a
   await page.clock.install({ time: new Date("2026-10-27T12:00:00Z") });
   await page.goto("/cheghad/");
   await expect(
+    page.getByRole("heading", { name: "به چقدر خوش آمدی" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "داشبورد", exact: true }),
+  ).toHaveCount(0);
+  await page.screenshot({
+    path: testInfo.outputPath("login-desktop.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: testInfo.outputPath("login-mobile.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1360, height: 1000 });
+  await page.getByRole("button", { name: "مشاهده دمو", exact: true }).click();
+  await expect(
     page.getByRole("heading", { name: "داشبورد", exact: true }),
   ).toBeVisible({ timeout: 10000 });
   await expect(
     page.getByRole("button", { name: "دستیار هوش مصنوعی" }),
   ).toHaveCount(0);
   // Synthetic fixture lives only in this isolated browser context.
-  await page.evaluate(async () => {
+  const fixture = await page.evaluate(async () => {
     const entries = [
       { kind: "income", amount: 25000000, month: "1405-09", repeat: true },
       {
@@ -61,22 +78,19 @@ test("Bento dashboard and both budget comparisons work on desktop and mobile", a
         theme: "dark",
       },
     };
-    await new Promise((resolve, reject) => {
-      const request = indexedDB.open("cheghad-v1", 2);
-      request.onsuccess = () => {
-        const db = request.result,
-          tx = db.transaction("state", "readwrite");
-        tx.objectStore("state").put(ledger, "ledger");
-        tx.oncomplete = () => {
-          db.close();
-          resolve();
-        };
-        tx.onerror = () => reject(tx.error);
-      };
-      request.onerror = () => reject(request.error);
-    });
+    return ledger;
   });
-  await page.reload();
+  await page.getByRole("button", { name: "تنظیمات", exact: true }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "synthetic-fixture.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(fixture)),
+  });
+  await expect(
+    page.getByRole("button", { name: "بازگردانی آخرین تغییر", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "داشبورد", exact: true }).click();
   await expect(
     page.getByRole("region", { name: "دارایی خالص", exact: true }),
   ).toBeVisible();
@@ -84,6 +98,10 @@ test("Bento dashboard and both budget comparisons work on desktop and mobile", a
   await expect(
     page.getByRole("button", { name: "۳ ماه", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "تم روشن", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.getByRole("button", { name: "تم تیره", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.screenshot({
     path: testInfo.outputPath("dashboard-desktop.png"),
     fullPage: true,
@@ -93,14 +111,12 @@ test("Bento dashboard and both budget comparisons work on desktop and mobile", a
     await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)
   )
     throw Error("Dashboard mobile overflow");
-  const navBounds = await page
-    .locator(".sidebar .nav")
-    .evaluateAll((nodes) =>
-      nodes.map((n) => ({
-        left: n.getBoundingClientRect().left,
-        right: n.getBoundingClientRect().right,
-      })),
-    );
+  const navBounds = await page.locator(".sidebar .nav").evaluateAll((nodes) =>
+    nodes.map((n) => ({
+      left: n.getBoundingClientRect().left,
+      right: n.getBoundingClientRect().right,
+    })),
+  );
   expect(navBounds.every((n) => n.left >= 0 && n.right <= 390)).toBe(true);
   await page.screenshot({
     path: testInfo.outputPath("dashboard-mobile.png"),
@@ -145,6 +161,19 @@ test("Bento dashboard and both budget comparisons work on desktop and mobile", a
     .click();
   await page.getByRole("button", { name: "درآمد", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "بستن پنجره", exact: true }).click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.getByRole("button", { name: "داشبورد", exact: true }).click();
+  await expect(page.locator(".tab-content")).toHaveCSS(
+    "animation-name",
+    "none",
+  );
+  await page
+    .getByRole("button", { name: "بازگشت به ورود", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "به چقدر خوش آمدی" }),
+  ).toBeVisible();
   if (errors.length) throw Error(errors.join("\n"));
   console.log(
     "PASS: dashboard, no AI controls, both reference budgets, mobile layout, settings and entry dialog",

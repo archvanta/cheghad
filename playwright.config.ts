@@ -6,6 +6,7 @@ const executablePath =
   (existsSync("/usr/bin/chromium") ? "/usr/bin/chromium" : undefined);
 export default defineConfig({
   testDir: "./e2e",
+  testMatch: "finance-bento.spec.ts",
   timeout: 45000,
   use: {
     baseURL: "http://127.0.0.1:5191",

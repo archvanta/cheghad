@@ -1,3 +1,5 @@
+import { isDemoMode } from "./account/mode";
+import { cloudEnabled } from "./account/api";
 import { useState } from "react";
 import {
   profileSchema,
@@ -231,8 +233,10 @@ export default function SettingsPanel({
       <section className="panel">
         <h2>مالکیت و پشتیبان داده</h2>
         <p>
-          داده‌ها در همین مرورگر می‌مانند و به سرویس بیرونی ارسال نمی‌شوند. حذف
-          داده مرورگر باعث از دست رفتن اطلاعات می‌شود؛ پشتیبان خصوصی بگیر.
+          {cloudEnabled && !isDemoMode()
+            ? "دفتر در حساب خصوصی ذخیره می‌شود و پشتیبان رمز‌شده دارد. پاک کردن دفتر فعلی، تاریخچهٔ پشتیبان GitHub را حذف نمی‌کند."
+            : "داده‌ها در همین مرورگر می‌مانند و به سرویس بیرونی ارسال نمی‌شوند."}{" "}
+          حذف داده مرورگر باعث از دست رفتن اطلاعات می‌شود؛ پشتیبان خصوصی بگیر.
         </p>
         <div className="actions">
           <button className="button" onClick={backup}>
@@ -253,7 +257,8 @@ export default function SettingsPanel({
             className="button danger"
             disabled={busy}
             onClick={() => {
-              if (confirm("همه داده‌های محلی و Undo حذف شوند؟")) void purge();
+              if (confirm("دفتر فعلی و امکان بازگردانی پاک شوند؟"))
+                void purge();
             }}
           >
             حذف همه اطلاعات

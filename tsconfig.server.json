@@ -9,5 +9,10 @@
     "noEmit": true,
     "esModuleInterop": true
   },
-  "include": ["server/**/*.ts", "src/ai/**/*.ts", "src/finance.ts"]
+  "include": [
+    "server/**/*.ts",
+    "accounts/**/*.ts",
+    "src/ai/**/*.ts",
+    "src/finance.ts"
+  ]
 }

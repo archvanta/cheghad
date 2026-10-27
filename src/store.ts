@@ -1,3 +1,5 @@
+import { isDemoMode } from "./account/mode";
+import { cloudEnabled, remoteStore } from "./account/api";
 import { openDB } from "idb";
 import {
   entrySchema,
@@ -9,7 +11,7 @@ import {
 } from "./finance";
 import { initial } from "./data";
 const database = () =>
-  openDB("cheghad-v1", 2, {
+  openDB(isDemoMode() ? "cheghad-demo-v1" : "cheghad-v1", 2, {
     upgrade(db) {
       if (!db.objectStoreNames.contains("state")) db.createObjectStore("state");
       if (!db.objectStoreNames.contains("undo")) db.createObjectStore("undo");
@@ -62,11 +64,13 @@ export function migrate(value: unknown): Ledger {
   return ledgerSchema.parse(result);
 }
 export async function read() {
+  if (cloudEnabled && !isDemoMode()) return remoteStore.read();
   return (await database())
     .get("state", "ledger")
     .then((value) => (value ? migrate(value) : undefined));
 }
 export async function readUndo() {
+  if (cloudEnabled && !isDemoMode()) return remoteStore.readUndo();
   const value = await (await database()).get("undo", "ledger");
   return value ? migrate(value) : undefined;
 }
@@ -75,6 +79,8 @@ export async function save(
   action = "ویرایش اطلاعات",
   undo = false,
 ): Promise<Ledger> {
+  if (cloudEnabled && !isDemoMode())
+    return remoteStore.save(value, action, undo);
   const parsed = ledgerSchema.parse(value);
   const db = await database(),
     tx = db.transaction(["state", "undo"], "readwrite");
@@ -103,6 +109,7 @@ export async function restore(value: Ledger, currentRevision: number) {
   return save({ ...value, revision: currentRevision }, "بازیابی پشتیبان");
 }
 export async function purge() {
+  if (cloudEnabled && !isDemoMode()) return remoteStore.purge();
   const db = await database(),
     tx = db.transaction(["state", "undo"], "readwrite");
   await tx.objectStore("state").clear();

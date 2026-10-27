@@ -1,3 +1,8 @@
+import { isDemoMode } from "./account/mode";
+import PrivateImport from "./PrivateImport";
+import { AccountBar } from "./account/AccountGate";
+import { cloudEnabled } from "./account/api";
+import Brand from "./Brand";
 import FinanceBento from "./components/ui/finance-bento";
 import StrategyComparison from "./StrategyComparison";
 import EntryEditor, { kindNames } from "./EntryEditor";
@@ -221,13 +226,9 @@ export default function App() {
   ];
   return (
     <div className="app">
-      <aside className="sidebar">
+      <nav className="sidebar" aria-label="ناوبری اصلی">
         <div className="brand">
-          <div className="brandicon">چ</div>
-          <div>
-            <b>چقدر؟</b>
-            <small>CHEGHAD FINANCE</small>
-          </div>
+          <Brand />
         </div>
         <p className="navlabel">مدیریت مالی</p>
         {tabs.map((t, i) => {
@@ -236,6 +237,7 @@ export default function App() {
             <button
               key={t}
               className={"nav " + (tab === t ? "active" : "")}
+              aria-current={tab === t ? "page" : undefined}
               onClick={() => setTab(t)}
             >
               <Icon size={19} />
@@ -244,9 +246,13 @@ export default function App() {
           );
         })}
         <div className="sidefoot">همه اطلاعات به‌صورت محلی ذخیره می‌شوند</div>
-      </aside>
+      </nav>
       <main className="main">
+        <AccountBar />
         <header>
+          <div className="mobile-brand">
+            <Brand compact />
+          </div>
           <div>
             <span className="eyebrow">داشبورد شخصی / {fmtMonth(month)}</span>
             <h1>{tab}</h1>
@@ -265,24 +271,24 @@ export default function App() {
                 </option>
               ))}
             </select>
-            <button
-              className="button iconbutton"
-              onClick={() =>
-                update(
-                  (l) => ({
-                    ...l,
-                    profile: {
-                      ...l.profile,
-                      theme: l.profile.theme === "dark" ? "light" : "dark",
-                    },
-                  }),
-                  "تغییر تم",
-                )
-              }
-              aria-label="تغییر تم"
-            >
-              ◐
-            </button>
+            <div className="theme-switch" role="group" aria-label="انتخاب تم">
+              {(["dark", "light"] as const).map((theme) => (
+                <button
+                  key={theme}
+                  aria-pressed={ledger.profile.theme === theme}
+                  aria-label={theme === "dark" ? "تم تیره" : "تم روشن"}
+                  onClick={() => {
+                    if (theme !== ledger.profile.theme)
+                      void update(
+                        (l) => ({ ...l, profile: { ...l.profile, theme } }),
+                        "تغییر تم",
+                      );
+                  }}
+                >
+                  {theme === "dark" ? "تیره" : "روشن"}
+                </button>
+              ))}
+            </div>
           </div>
         </header>
         {error && (
@@ -292,7 +298,11 @@ export default function App() {
         )}
         <div className="savebar">
           <span role="status">
-            {busy ? "در حال ذخیره…" : "ذخیره محلی · نسخه " + ledger.revision}
+            {busy
+              ? "در حال ذخیره…"
+              : (cloudEnabled && !isDemoMode()
+                  ? "ذخیره خصوصی در حساب · نسخه "
+                  : "ذخیره در این مرورگر · نسخه ") + ledger.revision}
           </span>
           {undo && (
             <button
@@ -310,301 +320,311 @@ export default function App() {
             </button>
           )}
         </div>
-        {tab === "داشبورد" && (
-          <FinanceBento ledger={ledger} month={month} onNavigate={setTab} />
-        )}
-        {["درآمد و هزینه", "اقساط", "طلا و دلار"].includes(tab) && (
-          <div className="panel">
-            <div className="panelhead">
-              <div>
-                <h3>مدیریت و ویرایش اطلاعات</h3>
-                <p>برای تغییر هر مبلغ روی ویرایش کلیک کن.</p>
-              </div>
-              <div className="actions">
-                {(tab === "درآمد و هزینه"
-                  ? (["income", "expense"] as Kind[])
-                  : tab === "اقساط"
-                    ? (["installment"] as Kind[])
-                    : (["goldBuy", "goldSell", "usdBuy", "usdSell"] as Kind[])
-                ).map((k) => (
-                  <button
-                    className="button primary"
-                    key={k}
-                    onClick={() => newDraft(k)}
-                  >
-                    <Plus size={16} />
-                    {types[k]}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="filters">
-              <label>
-                جست‌وجوی رکورد
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </label>
-              <label>
-                فیلتر نوع
-                <select
-                  value={kindFilter}
-                  onChange={(e) => setKindFilter(e.target.value)}
-                >
-                  <option value="all">همه</option>
-                  {Object.entries(types).map(([k, v]) => (
-                    <option value={k} key={k}>
-                      {v}
-                    </option>
+        <div key={tab} className="tab-content">
+          {tab === "داشبورد" && (
+            <FinanceBento ledger={ledger} month={month} onNavigate={setTab} />
+          )}
+          {["درآمد و هزینه", "اقساط", "طلا و دلار"].includes(tab) && (
+            <div className="panel">
+              <div className="panelhead">
+                <div>
+                  <h3>مدیریت و ویرایش اطلاعات</h3>
+                  <p>برای تغییر هر مبلغ روی ویرایش کلیک کن.</p>
+                </div>
+                <div className="actions">
+                  {(tab === "درآمد و هزینه"
+                    ? (["income", "expense"] as Kind[])
+                    : tab === "اقساط"
+                      ? (["installment"] as Kind[])
+                      : (["goldBuy", "goldSell", "usdBuy", "usdSell"] as Kind[])
+                  ).map((k) => (
+                    <button
+                      className="button primary"
+                      key={k}
+                      onClick={() => newDraft(k)}
+                    >
+                      <Plus size={16} />
+                      {types[k]}
+                    </button>
                   ))}
-                </select>
-              </label>
-              <label>
-                مرتب‌سازی
-                <select value={sort} onChange={(e) => setSort(e.target.value)}>
-                  <option value="date">سررسید</option>
-                  <option value="amount">بیشترین مبلغ</option>
-                </select>
-              </label>
-            </div>
-            <div
-              className="tablewrap"
-              tabIndex={0}
-              role="region"
-              aria-label="جدول مالی قابل پیمایش"
-            >
-              <table>
-                <thead>
-                  <tr>
-                    <th>عنوان</th>
-                    <th>نوع</th>
-                    <th>ماه شروع</th>
-                    <th>مبلغ</th>
-                    <th>تکرار</th>
-                    <th>عملیات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.map((e) => (
-                    <tr key={e.id}>
-                      <td>{e.name}</td>
-                      <td>
-                        <span className="tag">{types[e.kind]}</span>
-                      </td>
-                      <td>{fmtMonth(e.month)}</td>
-                      <td>
-                        {amountAt(e, e.repeat ? month : e.month) === null
-                          ? "نیازمند تکمیل"
-                          : money(amountAt(e, e.repeat ? month : e.month)!)}
-                        <small className="record-status">
-                          {e.confirmed ? "تأییدشده" : "نیازمند تأیید"} ·
-                          باقی‌مانده{" "}
-                          {money(
-                            remaining(ledger, e, e.repeat ? month : e.month),
-                          )}
-                        </small>
-                      </td>
-                      <td>{e.repeat ? "ماهانه" : "یک‌باره"}</td>
-                      <td>
-                        {!e.cancelled &&
-                          amountAt(e, e.repeat ? month : e.month) !== null &&
-                          remaining(ledger, e, e.repeat ? month : e.month) >
-                            0 && (
-                            <button
-                              className="mini"
-                              onClick={() => setPayment(e)}
-                            >
-                              {e.kind === "income"
-                                ? "ثبت دریافت"
-                                : "ثبت پرداخت"}
-                            </button>
-                          )}
-                        {e.kind === "installment" &&
-                          !ledger.payments.some((p) => p.entryId === e.id) && (
-                            <button
-                              className="mini"
-                              onClick={() =>
-                                update(
-                                  (l) => ({
-                                    ...l,
-                                    entries: l.entries.map((x) =>
-                                      x.id === e.id
-                                        ? { ...x, cancelled: !x.cancelled }
-                                        : x,
+                </div>
+              </div>
+              <div className="filters">
+                <label>
+                  جست‌وجوی رکورد
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                  />
+                </label>
+                <label>
+                  فیلتر نوع
+                  <select
+                    value={kindFilter}
+                    onChange={(e) => setKindFilter(e.target.value)}
+                  >
+                    <option value="all">همه</option>
+                    {Object.entries(types).map(([k, v]) => (
+                      <option value={k} key={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  مرتب‌سازی
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                  >
+                    <option value="date">سررسید</option>
+                    <option value="amount">بیشترین مبلغ</option>
+                  </select>
+                </label>
+              </div>
+              <div
+                className="tablewrap"
+                tabIndex={0}
+                role="region"
+                aria-label="جدول مالی قابل پیمایش"
+              >
+                <table>
+                  <thead>
+                    <tr>
+                      <th>عنوان</th>
+                      <th>نوع</th>
+                      <th>ماه شروع</th>
+                      <th>مبلغ</th>
+                      <th>تکرار</th>
+                      <th>عملیات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map((e) => (
+                      <tr key={e.id}>
+                        <td>{e.name}</td>
+                        <td>
+                          <span className="tag">{types[e.kind]}</span>
+                        </td>
+                        <td>{fmtMonth(e.month)}</td>
+                        <td>
+                          {amountAt(e, e.repeat ? month : e.month) === null
+                            ? "نیازمند تکمیل"
+                            : money(amountAt(e, e.repeat ? month : e.month)!)}
+                          <small className="record-status">
+                            {e.confirmed ? "تأییدشده" : "نیازمند تأیید"} ·
+                            باقی‌مانده{" "}
+                            {money(
+                              remaining(ledger, e, e.repeat ? month : e.month),
+                            )}
+                          </small>
+                        </td>
+                        <td>{e.repeat ? "ماهانه" : "یک‌باره"}</td>
+                        <td>
+                          {!e.cancelled &&
+                            amountAt(e, e.repeat ? month : e.month) !== null &&
+                            remaining(ledger, e, e.repeat ? month : e.month) >
+                              0 && (
+                              <button
+                                className="mini"
+                                onClick={() => setPayment(e)}
+                              >
+                                {e.kind === "income"
+                                  ? "ثبت دریافت"
+                                  : "ثبت پرداخت"}
+                              </button>
+                            )}
+                          {e.kind === "installment" &&
+                            !ledger.payments.some(
+                              (p) => p.entryId === e.id,
+                            ) && (
+                              <button
+                                className="mini"
+                                onClick={() =>
+                                  update(
+                                    (l) => ({
+                                      ...l,
+                                      entries: l.entries.map((x) =>
+                                        x.id === e.id
+                                          ? { ...x, cancelled: !x.cancelled }
+                                          : x,
+                                      ),
+                                    }),
+                                    "تغییر وضعیت قسط",
+                                  )
+                                }
+                              >
+                                {e.cancelled ? "فعال‌سازی" : "لغو قسط"}
+                              </button>
+                            )}
+                          <button
+                            className="mini"
+                            onClick={() => setDraft(editable(e))}
+                          >
+                            ویرایش
+                          </button>
+                          <button
+                            className="mini danger"
+                            onClick={() => {
+                              if (confirm("این مورد حذف شود؟"))
+                                void update(
+                                  (v) => ({
+                                    ...v,
+                                    entries: v.entries.filter(
+                                      (x) => x.id !== e.id,
+                                    ),
+                                    payments: v.payments.filter(
+                                      (p) => p.entryId !== e.id,
                                     ),
                                   }),
-                                  "تغییر وضعیت قسط",
-                                )
-                              }
-                            >
-                              {e.cancelled ? "فعال‌سازی" : "لغو قسط"}
-                            </button>
-                          )}
-                        <button
-                          className="mini"
-                          onClick={() => setDraft(editable(e))}
-                        >
-                          ویرایش
-                        </button>
-                        <button
-                          className="mini danger"
-                          onClick={() => {
-                            if (confirm("این مورد حذف شود؟"))
-                              void update(
-                                (v) => ({
-                                  ...v,
-                                  entries: v.entries.filter(
-                                    (x) => x.id !== e.id,
-                                  ),
-                                  payments: v.payments.filter(
-                                    (p) => p.entryId !== e.id,
-                                  ),
-                                }),
-                                "حذف رکورد و برگشت اثر پرداخت‌های آن",
-                              );
-                          }}
-                        >
-                          حذف
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                                  "حذف رکورد و برگشت اثر پرداخت‌های آن",
+                                );
+                            }}
+                          >
+                            حذف
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
-        {tab === "شبیه‌ساز" && (
-          <>
-            <div className="hero small">
-              <span>FINANCIAL DECISION LAB</span>
-              <h2>طلا بخرم یا قسط بدم؟</h2>
-              <p>
-                پارامترها رو تغییر بده و نتیجه سه ماه بعد رو ببین. این فقط
-                شبیه‌سازی است و داده واقعی را تغییر نمی‌دهد.
-              </p>
-            </div>
-            <StrategyComparison ledger={ledger} start={nextMonth(month, 1)} />
-            <div className="twocol">
-              <div className="panel">
-                <h3>مقادیر سناریوی آزاد</h3>
-                <Range
-                  title="بودجه تخصیص از نقد واقعی"
-                  v={gift}
-                  set={setGift}
-                  min={0}
-                  max={Math.max(30, cash / 1e6)}
-                />
-                <Range
-                  title="هزینه اضافی ثبت‌نشده در سناریو"
-                  v={trip}
-                  set={setTrip}
-                  min={0}
-                  max={10}
-                />
-                <Range
-                  title="تسویه زودتر اقساط"
-                  v={debt}
-                  set={setDebt}
-                  min={0}
-                  max={gift}
-                />
-                <Range
-                  title="طلای فوری"
-                  v={gold}
-                  set={setGold}
-                  min={0}
-                  max={Math.max(0, gift - trip - debt)}
-                />
-                <Range
-                  title="دلار فوری"
-                  v={usd}
-                  set={setUsd}
-                  min={0}
-                  max={gift}
-                />
-                <Range
-                  title="تغییر فرضی قیمت طلا (درصد)"
-                  v={priceChange}
-                  set={setPriceChange}
-                  min={-50}
-                  max={100}
-                  unit="٪"
-                />
-                <Range
-                  title="خرید طلای ماهانه"
-                  v={monthlyGold}
-                  set={setMonthlyGold}
-                  min={0}
-                  max={15}
-                />
-                <p className="muted">
-                  تسویه زودتر در این شبیه‌سازی به ترتیب از قسط‌های نخست کم
-                  می‌شود؛ قبل از اقدام واقعی باید شرایط دیجی‌پی بررسی شود.
+          )}
+          {tab === "شبیه‌ساز" && (
+            <>
+              <div className="hero small">
+                <span>FINANCIAL DECISION LAB</span>
+                <h2>طلا بخرم یا قسط بدم؟</h2>
+                <p>
+                  پارامترها رو تغییر بده و نتیجه سه ماه بعد رو ببین. این فقط
+                  شبیه‌سازی است و داده واقعی را تغییر نمی‌دهد.
                 </p>
               </div>
-              <div className="panel">
-                <h3>نتیجه سناریو</h3>
-                {scenarioResult.error && (
-                  <p className="notice danger" role="alert">
-                    {scenarioResult.error}
+              <StrategyComparison ledger={ledger} start={nextMonth(month, 1)} />
+              <div className="twocol">
+                <div className="panel">
+                  <h3>مقادیر سناریوی آزاد</h3>
+                  <Range
+                    title="بودجه تخصیص از نقد واقعی"
+                    v={gift}
+                    set={setGift}
+                    min={0}
+                    max={Math.max(30, cash / 1e6)}
+                  />
+                  <Range
+                    title="هزینه اضافی ثبت‌نشده در سناریو"
+                    v={trip}
+                    set={setTrip}
+                    min={0}
+                    max={10}
+                  />
+                  <Range
+                    title="تسویه زودتر اقساط"
+                    v={debt}
+                    set={setDebt}
+                    min={0}
+                    max={gift}
+                  />
+                  <Range
+                    title="طلای فوری"
+                    v={gold}
+                    set={setGold}
+                    min={0}
+                    max={Math.max(0, gift - trip - debt)}
+                  />
+                  <Range
+                    title="دلار فوری"
+                    v={usd}
+                    set={setUsd}
+                    min={0}
+                    max={gift}
+                  />
+                  <Range
+                    title="تغییر فرضی قیمت طلا (درصد)"
+                    v={priceChange}
+                    set={setPriceChange}
+                    min={-50}
+                    max={100}
+                    unit="٪"
+                  />
+                  <Range
+                    title="خرید طلای ماهانه"
+                    v={monthlyGold}
+                    set={setMonthlyGold}
+                    min={0}
+                    max={15}
+                  />
+                  <p className="muted">
+                    تسویه زودتر در این شبیه‌سازی به ترتیب از قسط‌های نخست کم
+                    می‌شود؛ قبل از اقدام واقعی باید شرایط دیجی‌پی بررسی شود.
                   </p>
-                )}
-                {summary.map((m) => (
-                  <div className="result" key={m.month}>
-                    <b>{fmtMonth(m.month)}</b>
-                    <span>قسط: {million(m.installmentPaid)}</span>
-                    <span>
-                      طلا:{" "}
-                      {m.goldValue === null
-                        ? "نرخ نامعلوم"
-                        : money(m.goldValue)}{" "}
-                      · دلار:{" "}
-                      {m.usdValue === null ? "نرخ نامعلوم" : money(m.usdValue)}
-                    </span>
-                    <span>
-                      خالص دارایی:{" "}
-                      {m.netWorth === null
-                        ? "نیازمند تکمیل"
-                        : money(m.netWorth)}{" "}
-                      · کمینه روزانه: {money(m.minimum)}
-                    </span>
-                    <strong className={m.cash < 0 ? "red" : "green"}>
-                      نقدینگی: {million(m.cash)}
-                    </strong>
-                  </div>
-                ))}
-                <p className="muted">
-                  بودجه تخصیص، درآمد جدید نیست و به نقد اضافه نمی‌شود. هدیه را
-                  فقط یک‌بار در دفتر درآمد ثبت و در صورت وصول دریافت کن. هزینه
-                  اضافی سناریو باید در دفتر ثبت نشده باشد. کاهش اسمی اقساط فرضی
-                  است و پرداخت واقعی نیست.
-                </p>
+                </div>
+                <div className="panel">
+                  <h3>نتیجه سناریو</h3>
+                  {scenarioResult.error && (
+                    <p className="notice danger" role="alert">
+                      {scenarioResult.error}
+                    </p>
+                  )}
+                  {summary.map((m) => (
+                    <div className="result" key={m.month}>
+                      <b>{fmtMonth(m.month)}</b>
+                      <span>قسط: {million(m.installmentPaid)}</span>
+                      <span>
+                        طلا:{" "}
+                        {m.goldValue === null
+                          ? "نرخ نامعلوم"
+                          : money(m.goldValue)}{" "}
+                        · دلار:{" "}
+                        {m.usdValue === null
+                          ? "نرخ نامعلوم"
+                          : money(m.usdValue)}
+                      </span>
+                      <span>
+                        خالص دارایی:{" "}
+                        {m.netWorth === null
+                          ? "نیازمند تکمیل"
+                          : money(m.netWorth)}{" "}
+                        · کمینه روزانه: {money(m.minimum)}
+                      </span>
+                      <strong className={m.cash < 0 ? "red" : "green"}>
+                        نقدینگی: {million(m.cash)}
+                      </strong>
+                    </div>
+                  ))}
+                  <p className="muted">
+                    بودجه تخصیص، درآمد جدید نیست و به نقد اضافه نمی‌شود. هدیه را
+                    فقط یک‌بار در دفتر درآمد ثبت و در صورت وصول دریافت کن. هزینه
+                    اضافی سناریو باید در دفتر ثبت نشده باشد. کاهش اسمی اقساط
+                    فرضی است و پرداخت واقعی نیست.
+                  </p>
+                </div>
               </div>
-            </div>
-          </>
-        )}
-        {tab === "تنظیمات" && (
-          <SettingsPanel
-            ledger={ledger}
-            commit={update}
-            backup={backup}
-            importFile={importFile}
-            busy={busy}
-            purge={async () => {
-              try {
-                const l = await purgeStore();
-                latest.current = l;
-                setLedger(l);
-                setUndo(null);
-              } catch {
-                setError("حذف انجام نشد");
-              }
-            }}
-          />
-        )}
+            </>
+          )}
+          {tab === "تنظیمات" && (
+            <SettingsPanel
+              ledger={ledger}
+              commit={update}
+              backup={backup}
+              importFile={importFile}
+              busy={busy}
+              purge={async () => {
+                try {
+                  const l = await purgeStore();
+                  latest.current = l;
+                  setLedger(l);
+                  setUndo(null);
+                } catch {
+                  setError("حذف انجام نشد");
+                }
+              }}
+            />
+          )}
+        </div>
       </main>
+      {!isDemoMode() && <PrivateImport ledger={ledger} commit={update} />}
       {draft && (
         <EntryEditor
           entry={draft}

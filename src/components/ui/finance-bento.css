@@ -475,3 +475,34 @@
     max-width: none;
   }
 }
+
+/* Latest reference: quiet rectangular panels with a vertical colour wash. */
+.fb-card {
+  border-radius: 24px;
+  box-shadow: none;
+  border-color: #ffffff24;
+}
+.fb-card::before {
+  display: none;
+}
+.fb-blue {
+  background: linear-gradient(180deg, #100d2b 0%, #21184f 48%, #4132b6 100%);
+}
+.fb-graph {
+  background: linear-gradient(180deg, #0d132d 0%, #142b65 52%, #214dcc 100%);
+}
+.fb-lime {
+  background: linear-gradient(180deg, #17200e, #2c4419 58%, #456e29);
+}
+.fb-pink {
+  background: linear-gradient(180deg, #210b0d, #4f1118 58%, #8c242c);
+}
+.fb-copper {
+  background: linear-gradient(180deg, #24110b, #582515 58%, #a14525);
+}
+.fb-green {
+  background: linear-gradient(180deg, #0b1c1b, #154b40 58%, #26725c);
+}
+.fb-glass {
+  background: linear-gradient(180deg, #0e111b, #151b2a);
+}

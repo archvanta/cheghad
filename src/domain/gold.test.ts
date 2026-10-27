@@ -112,3 +112,50 @@ it("سکه واحد و ارزش مستقل دارد و هزینه فروش بی�
   } as GoldTransaction;
   expect(() => tradeValue(t)).toThrow();
 });
+it("دلار مستقل از طلا با نرخ دستی و کارمزد و فروش جزئی ارزش‌گذاری می‌شود", () => {
+  const s = fixture(),
+    now = new Date().toISOString();
+  const usd = goldAssetSchema.parse({
+    ...s.goldAssets[0],
+    id: crypto.randomUUID(),
+    title: "دلار عمومی",
+    kind: "usd",
+    unit: "usd",
+    price: 600,
+  });
+  s.goldAssets.push(usd);
+  const buy = goldTransactionSchema.parse({
+    ...s.goldTransactions[0],
+    id: crypto.randomUUID(),
+    assetId: usd.id,
+    quantity: "3.5",
+    price: 500,
+    commission: 50,
+    createdAt: now,
+  });
+  s.goldTransactions.push(buy);
+  s.goldTransactions.push({
+    ...buy,
+    id: crypto.randomUUID(),
+    side: "sell",
+    quantity: "1",
+    price: 600,
+    commission: 10,
+    date: "2026-10-02",
+  });
+  const dollar = goldPortfolio(s).find((a) => a.id === usd.id)!;
+  expect(dollar.quantity).toBe("2.5");
+  expect(dollar.market).toBe(1500);
+  expect(dollar.cashDelta).toBe(-1210);
+  const r = summary(s, "2026-10-01", "2026-10-31", "2026-10-02");
+  expect([r.cash, r.goldValue, r.usdValue, r.netWorth]).toEqual([
+    1690, 2400, 1500, 5590,
+  ]);
+  const before = r.cash;
+  usd.price = 900;
+  s.goldAssets = s.goldAssets.map((a) => (a.id === usd.id ? usd : a));
+  expect(summary(s, "2026-10-01", "2026-10-31", "2026-10-02").cash).toBe(
+    before,
+  );
+  expect(() => goldAssetSchema.parse({ ...usd, unit: "gram" })).toThrow();
+});

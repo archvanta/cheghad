@@ -94,7 +94,8 @@ export function summary(
     expense: total("expense"),
     installments: total("installment"),
     capacity: exact(new Decimal(projected).sub(state.reserve)),
-    goldValue: goldTotals(state, asOf).value,
+    goldValue: goldTotals(state, asOf).goldValue,
+    usdValue: goldTotals(state, asOf).usdValue,
     netWorth: exact(
       new Decimal(cash).add(goldTotals(state, asOf).value).sub(debt),
     ),

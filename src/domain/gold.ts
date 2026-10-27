@@ -48,7 +48,7 @@ export function goldPortfolio(state: State, asOf = "9999-12-31") {
         cost = cost.add(v.cash);
         if (!t.opening) cashDelta = cashDelta.sub(v.cash);
       } else {
-        if (q.gt(quantity)) throw Error("فروش بیش از موجودی طلا مجاز نیست");
+        if (q.gt(quantity)) throw Error("فروش بیش از موجودی دارایی مجاز نیست");
         const soldCost = cost.mul(q).div(quantity);
         realized = realized.add(new D(v.cash).sub(soldCost));
         cost = cost.sub(soldCost);
@@ -84,8 +84,21 @@ export function goldPortfolio(state: State, asOf = "9999-12-31") {
 export function goldTotals(state: State, asOf: string) {
   const rows = goldPortfolio(state, asOf);
   return {
+    goldValue: roundRial(
+      rows
+        .filter((r) => r.kind !== "usd")
+        .reduce((s, r) => s.add(r.market ?? 0), new D(0)),
+    ),
+    usdValue: roundRial(
+      rows
+        .filter((r) => r.kind === "usd")
+        .reduce((s, r) => s.add(r.market ?? 0), new D(0)),
+    ),
     value: roundRial(rows.reduce((s, r) => s.add(r.market ?? 0), new D(0))),
     cashDelta: roundRial(rows.reduce((s, r) => s.add(r.cashDelta), new D(0))),
     unknown: rows.filter((r) => r.market === null && r.quantity !== "0").length,
   };
 }
+
+export const assetUnitLabel = (unit: string) =>
+  unit === "usd" ? "دلار" : unit === "gram" ? "گرم" : "سکه";

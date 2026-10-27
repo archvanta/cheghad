@@ -5,10 +5,12 @@ test("خرید و فروش طلا به مانده واقعی متصل‌اند",
     page.getByRole("heading", { name: "تصویر مالی تو" }),
   ).toBeVisible();
   if (
-    !(await page.getByRole("button", { name: "طلا", exact: true }).isVisible())
+    !(await page
+      .getByRole("button", { name: "طلا و دلار", exact: true })
+      .isVisible())
   )
     await page.getByText("بیشتر", { exact: true }).click();
-  await page.getByRole("button", { name: "طلا", exact: true }).click();
+  await page.getByRole("button", { name: "طلا و دلار", exact: true }).click();
   await page.getByLabel("عنوان دارایی").fill("طلا عمومی");
   await page.getByLabel("قیمت دستی هر").fill("۱۰۰۰");
   await page.getByRole("button", { name: "ذخیره دارایی", exact: true }).click();

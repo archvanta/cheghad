@@ -118,8 +118,8 @@ export const goldAssetSchema = z
   .object({
     id: z.string().uuid(),
     title: z.string().trim().min(1).max(100),
-    kind: z.enum(["18k", "24k", "melted", "digital", "coin"]),
-    unit: z.enum(["gram", "coin"]),
+    kind: z.enum(["18k", "24k", "melted", "digital", "coin", "usd"]),
+    unit: z.enum(["gram", "coin", "usd"]),
     price: money.nullable(),
     priceDate: isoDate.nullable(),
     spreadBps: z.number().int().min(0).max(10000),
@@ -127,7 +127,12 @@ export const goldAssetSchema = z
     updatedAt: z.string().datetime(),
   })
   .refine(
-    (a) => (a.kind === "coin" ? a.unit === "coin" : a.unit === "gram"),
+    (a) =>
+      a.kind === "usd"
+        ? a.unit === "usd"
+        : a.kind === "coin"
+          ? a.unit === "coin"
+          : a.unit === "gram",
     "واحد دارایی با نوع آن سازگار نیست",
   );
 export const goldTransactionSchema = z

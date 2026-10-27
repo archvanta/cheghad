@@ -7,7 +7,12 @@ import {
   type GoldAsset,
   type GoldTransaction,
 } from "../domain/model";
-import { goldPortfolio, tradeValue, quantityInput } from "../domain/gold";
+import {
+  assetUnitLabel,
+  goldPortfolio,
+  tradeValue,
+  quantityInput,
+} from "../domain/gold";
 import { parseMoney } from "../domain/engine";
 const names = {
   "18k": "طلای ۱۸ عیار",
@@ -15,6 +20,7 @@ const names = {
   melted: "آب‌شده",
   digital: "دیجیتال",
   coin: "سکه",
+  usd: "دلار آمریکا",
 };
 export default function Gold({
   state,
@@ -46,7 +52,7 @@ export default function Gold({
   }
   return (
     <div className="planner">
-      <h2>دارایی طلا</h2>
+      <h2>طلا و دلار</h2>
       <p>
         قیمت‌ها دستی‌اند و قیمت زنده نیستند. وزن تا شش رقم اعشار ذخیره می‌شود؛
         ارزش هر معامله با روش نیم‌به‌بالا به ریال گرد می‌شود. بهای فروش از
@@ -70,7 +76,8 @@ export default function Gold({
                   id: asset?.id ?? crypto.randomUUID(),
                   title: f.get("title"),
                   kind,
-                  unit: kind === "coin" ? "coin" : "gram",
+                  unit:
+                    kind === "usd" ? "usd" : kind === "coin" ? "coin" : "gram",
                   price: String(f.get("price")).trim()
                     ? parseMoney(String(f.get("price")))
                     : null,
@@ -98,7 +105,7 @@ export default function Gold({
                       a,
                     ],
                   },
-                  "ذخیره دارایی و قیمت طلا: " + a.title,
+                  "ذخیره دارایی و قیمت دارایی: " + a.title,
                 );
                 if (ok) setAsset(null);
                 return ok;
@@ -110,7 +117,7 @@ export default function Gold({
               <input name="title" required defaultValue={asset?.title} />
             </label>
             <label>
-              نوع طلا
+              نوع دارایی
               <select name="kind" defaultValue={asset?.kind ?? "18k"}>
                 {Object.entries(names).map(([k, v]) => (
                   <option key={k} value={k}>
@@ -120,7 +127,7 @@ export default function Gold({
               </select>
             </label>
             <label>
-              قیمت دستی هر گرم / سکه (تومان؛ خالی = نامعلوم)
+              قیمت دستی هر گرم / سکه / دلار (تومان؛ خالی = نامعلوم)
               <input
                 name="price"
                 inputMode="decimal"
@@ -191,7 +198,7 @@ export default function Gold({
                   ],
                 };
                 goldPortfolio(next);
-                const ok = await commit(next, "ثبت معامله طلا");
+                const ok = await commit(next, "ثبت معامله دارایی");
                 if (ok) setTrade(null);
                 return ok;
               })
@@ -207,7 +214,7 @@ export default function Gold({
                 <option value="">انتخاب دارایی</option>
                 {state.goldAssets.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.title} · {a.unit === "gram" ? "گرم" : "سکه"}
+                    {a.title} · {assetUnitLabel(a.unit)}
                   </option>
                 ))}
               </select>
@@ -220,7 +227,7 @@ export default function Gold({
               </select>
             </label>
             <label>
-              مقدار (گرم یا تعداد سکه)
+              مقدار (گرم، تعداد سکه یا دلار)
               <input
                 name="quantity"
                 required
@@ -290,7 +297,7 @@ export default function Gold({
           <section className="card" key={a.id}>
             <h2>{a.title}</h2>
             <p>
-              {names[a.kind]} · {a.quantity} {a.unit === "gram" ? "گرم" : "سکه"}
+              {names[a.kind]} · {a.quantity} {assetUnitLabel(a.unit)}
             </p>
             <dl>
               <div>
@@ -335,7 +342,7 @@ export default function Gold({
                       ...state,
                       goldAssets: state.goldAssets.filter((x) => x.id !== a.id),
                     },
-                    "حذف دارایی طلا",
+                    "حذف طلا و دلار",
                   );
               }}
             >
@@ -379,7 +386,7 @@ export default function Gold({
                     ),
                   };
                   goldPortfolio(next);
-                  await commit(next, "حذف معامله طلا");
+                  await commit(next, "حذف معامله دارایی");
                 } catch (err) {
                   setError(
                     err instanceof Error ? err.message : "حذف مجاز نیست",

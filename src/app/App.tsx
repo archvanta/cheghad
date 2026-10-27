@@ -291,7 +291,7 @@ export default function App() {
               ["entries", "دفتر مالی", List],
               ["planner", "برنامه و بودجه", List],
               ["debts", "بدهی‌ها", Wallet],
-              ["gold", "طلا", Wallet],
+              ["gold", "طلا و دلار", Wallet],
               ["settings", "تنظیمات", Settings],
             ].map(([id, label, Icon]) => (
               <button
@@ -311,7 +311,7 @@ export default function App() {
               <div>
                 {[
                   ["debts", "بدهی‌ها"],
-                  ["gold", "طلا"],
+                  ["gold", "طلا و دلار"],
                 ].map(([id, label]) => (
                   <button
                     key={id}
@@ -399,7 +399,7 @@ export default function App() {
                       : page === "debts"
                         ? "بدهی‌ها"
                         : page === "gold"
-                          ? "دارایی طلا"
+                          ? "طلا و دلار"
                           : "تنظیمات و داده‌ها"}
               </h1>
             </div>
@@ -590,6 +590,10 @@ export default function App() {
                 <Card title="تعهدات و دارایی">
                   <dl>
                     <div>
+                      <dt>ارزش مرجع دلار</dt>
+                      <dd>{money(r.usdValue)}</dd>
+                    </div>
+                    <div>
                       <dt>ارزش مرجع طلا</dt>
                       <dd>{money(r.goldValue)}</dd>
                     </div>
@@ -603,8 +607,8 @@ export default function App() {
                     </div>
                   </dl>
                   <p>
-                    خالص فعلی = نقد + ارزش مرجع طلا − بدهی. ارزش طلا از قیمت
-                    دستی دارایی‌های ثبت‌شده محاسبه می‌شود.
+                    خالص فعلی = نقد + ارزش مرجع طلا و دلار − بدهی. ارزش دارایی
+                    از قیمت دستی دارایی‌های ثبت‌شده محاسبه می‌شود.
                   </p>
                 </Card>
               </div>

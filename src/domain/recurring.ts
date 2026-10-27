@@ -34,6 +34,10 @@ export function expandEntries(state: State, until: string): Entry[] {
         entries.set(id, {
           id,
           ruleId: rule.id,
+          source: rule.source,
+          notes: rule.notes,
+          certainty: rule.certainty,
+          incomeType: rule.incomeType,
           categoryId: rule.categoryId,
           title: rule.title,
           kind: rule.kind,
@@ -102,4 +106,23 @@ export function budgetReport(state: State, start: string, end: string) {
       unknown: rows.some((e) => e.amount === null),
     };
   });
+}
+
+/** Preserve every earlier occurrence before replacing a schedule from today onward. */
+export function replaceSchedule(state: State, rule: Rule, from: string): State {
+  isoDate.parse(from);
+  if (from < new Date().toISOString().slice(0, 10))
+    throw new Error("برنامه گذشته قابل بازنویسی نیست");
+  const old = state.rules.find((r) => r.id === rule.id);
+  if (!old) throw new Error("قاعده پیدا نشد");
+  const previous = expandEntries({ ...state, rules: [old] }, from).filter(
+    (e) => e.ruleId === old.id && e.dueDate < from,
+  );
+  const entries = new Map(state.entries.map((e) => [e.id, e]));
+  for (const e of previous) if (!entries.has(e.id)) entries.set(e.id, e);
+  return {
+    ...state,
+    entries: [...entries.values()],
+    rules: state.rules.map((r) => (r.id === rule.id ? rule : r)),
+  };
 }

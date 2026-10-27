@@ -17,6 +17,12 @@ export const isoDate = z
       +s.slice(0, 4) <= 2200
     );
   }, "تاریخ معتبر نیست");
+const metadata = {
+  source: z.string().max(100).optional(),
+  notes: z.string().max(2000).optional(),
+  certainty: z.enum(["expected", "committed"]).optional(),
+  incomeType: z.string().max(60).optional(),
+};
 export const categorySchema = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1).max(60),
@@ -26,6 +32,7 @@ export const ruleSchema = z
   .object({
     id: z.string().uuid(),
     title: z.string().trim().min(1).max(100),
+    ...metadata,
     kind: z.enum(["income", "expense"]),
     categoryId: z.string().uuid().optional(),
     start: isoDate,
@@ -47,6 +54,7 @@ export const ruleSchema = z
 export const entrySchema = z
   .object({
     id: z.string().uuid(),
+    ...metadata,
     ruleId: z.string().uuid().optional(),
     categoryId: z.string().uuid().optional(),
     title: z.string().trim().min(1).max(100),

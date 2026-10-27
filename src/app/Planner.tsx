@@ -8,7 +8,7 @@ import {
   type Rule,
 } from "../domain/model";
 import { parseMoney } from "../domain/engine";
-import { budgetReport, reviseRule } from "../domain/recurring";
+import { replaceSchedule, budgetReport, reviseRule } from "../domain/recurring";
 type Props = {
   state: State;
   commit: (s: State, action?: string) => Promise<boolean>;
@@ -71,6 +71,9 @@ export default function Planner({ state, commit, busy, money }: Props) {
                 const now = new Date().toISOString();
                 const rule = ruleSchema.parse({
                   id: crypto.randomUUID(),
+                  source: String(f.get("source") || ""),
+                  notes: String(f.get("notes") || ""),
+                  certainty: f.get("certainty"),
                   title: f.get("title"),
                   kind: f.get("kind"),
                   categoryId: String(f.get("categoryId") || "") || undefined,
@@ -93,6 +96,21 @@ export default function Planner({ state, commit, busy, money }: Props) {
             <label>
               عنوان تکرار
               <input name="title" required maxLength={100} />
+            </label>
+            <label>
+              منبع تکرار
+              <input name="source" maxLength={100} />
+            </label>
+            <label>
+              یادداشت تکرار
+              <textarea name="notes" maxLength={2000} />
+            </label>
+            <label>
+              قطعیت تکرار
+              <select name="certainty">
+                <option value="expected">پیش‌بینی‌شده</option>
+                <option value="committed">قطعی</option>
+              </select>
             </label>
             <label>
               نوع تکرار
@@ -200,6 +218,102 @@ export default function Planner({ state, commit, busy, money }: Props) {
                 )
                 .join(" / ")}
             </p>
+            <details>
+              <summary>ویرایش مشخصات و برنامه از امروز به بعد</summary>
+              <form
+                onSubmit={(e) =>
+                  submit(e, async (f) => {
+                    const start = String(f.get("start"));
+                    const updated = ruleSchema.parse({
+                      ...rule,
+                      title: f.get("title"),
+                      source: f.get("source"),
+                      notes: f.get("notes"),
+                      certainty: f.get("certainty"),
+                      frequency: f.get("frequency"),
+                      categoryId:
+                        String(f.get("categoryId") || "") || undefined,
+                      start,
+                      end: String(f.get("end") || "") || null,
+                      revisions: [
+                        { from: start, amount: rule.revisions.at(-1)!.amount },
+                      ],
+                      updatedAt: new Date().toISOString(),
+                    });
+                    return commit(
+                      replaceSchedule(state, updated, today()),
+                      "ویرایش برنامه: " + rule.title,
+                    );
+                  })
+                }
+              >
+                <label>
+                  عنوان برنامه
+                  <input name="title" required defaultValue={rule.title} />
+                </label>
+                <label>
+                  منبع برنامه
+                  <input name="source" defaultValue={rule.source ?? ""} />
+                </label>
+                <label>
+                  یادداشت برنامه
+                  <textarea name="notes" defaultValue={rule.notes ?? ""} />
+                </label>
+                <label>
+                  قطعیت برنامه
+                  <select
+                    name="certainty"
+                    defaultValue={rule.certainty ?? "expected"}
+                  >
+                    <option value="expected">پیش‌بینی‌شده</option>
+                    <option value="committed">قطعی</option>
+                  </select>
+                </label>
+                <label>
+                  دوره جدید
+                  <select name="frequency" defaultValue={rule.frequency}>
+                    <option value="monthly">ماهانه شمسی</option>
+                    <option value="weekly">هفتگی</option>
+                    <option value="daily">روزانه</option>
+                  </select>
+                </label>
+                <label>
+                  شروع برنامه جدید
+                  <input
+                    name="start"
+                    type="date"
+                    required
+                    min={today()}
+                    defaultValue={today()}
+                  />
+                </label>
+                <label>
+                  پایان برنامه جدید
+                  <input name="end" type="date" defaultValue={rule.end ?? ""} />
+                </label>
+                <label>
+                  دسته برنامه
+                  <select
+                    name="categoryId"
+                    defaultValue={rule.categoryId ?? ""}
+                  >
+                    <option value="">بدون دسته</option>
+                    {state.categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p>
+                  رخدادهای قبل از امروز حفظ می‌شوند. رخدادهای آینده که قبلاً
+                  ویرایش یا پرداخت شده‌اند هم مستقل می‌مانند. نسخه‌های مبلغ
+                  آینده با آخرین مبلغ جایگزین می‌شوند؛ برای تغییر مبلغ از فرم
+                  زیر استفاده کن.
+                </p>
+                <button disabled={busy}>ذخیره برنامه جدید</button>
+              </form>
+            </details>
             <form onSubmit={(e) => submit(e, (f) => revise(rule, f))}>
               <label>
                 مبلغ جدید (تومان؛ خالی = نامشخص)
@@ -259,6 +373,7 @@ export default function Planner({ state, commit, busy, money }: Props) {
           </details>
         ))}
       </section>
+      <CostAnalysis money={money} />
       <section className="card">
         <h2>بودجه و مصرف دسته‌ها</h2>
         <div className="month-picker">
@@ -383,5 +498,47 @@ export default function Planner({ state, commit, busy, money }: Props) {
         ))}
       </section>
     </div>
+  );
+}
+
+function CostAnalysis({ money }: { money: (n: number) => string }) {
+  const [saving, setSaving] = useState<number | null>(null);
+  return (
+    <section className="card">
+      <h2>تحلیل تغییر هزینه ماهانه</h2>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          try {
+            const f = new FormData(e.currentTarget);
+            const delta =
+              parseMoney(String(f.get("old"))) -
+              parseMoney(String(f.get("new")));
+            if (!Number.isSafeInteger(delta * 12)) throw Error();
+            setSaving(delta);
+          } catch {
+            setSaving(null);
+          }
+        }}
+      >
+        <label>
+          هزینه فعلی (تومان)
+          <input name="old" required inputMode="decimal" />
+        </label>
+        <label>
+          هزینه جدید (تومان)
+          <input name="new" required inputMode="decimal" />
+        </label>
+        <button>محاسبه تغییر</button>
+      </form>
+      {saving !== null && (
+        <p>
+          تغییر مانده با فرض هزینه ثابت: ماهانه {money(saving)}؛ ۳ ماه{" "}
+          {money(saving * 3)}؛ ۶ ماه {money(saving * 6)}؛ ۱۲ ماه{" "}
+          {money(saving * 12)} تومان. این محاسبه فرضی داده‌های دفتر را تغییر
+          نمی‌دهد.
+        </p>
+      )}
+    </section>
   );
 }

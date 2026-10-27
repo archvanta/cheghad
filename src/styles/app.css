@@ -753,3 +753,14 @@ dialog p {
     grid-template-columns: 1fr;
   }
 }
+textarea {
+  font: inherit;
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--bg);
+  color: var(--ink);
+}

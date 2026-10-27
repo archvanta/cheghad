@@ -41,7 +41,7 @@ import {
   paid,
   dailyForecast,
 } from "../domain/engine";
-import { loadState, saveState, readBackup } from "../database/store";
+import { loadUndo, loadState, saveState, readBackup } from "../database/store";
 const labels = { income: "درآمد", expense: "هزینه", installment: "قسط" };
 const dateLabel = (date: string) =>
   new Intl.DateTimeFormat("fa-IR", {
@@ -108,6 +108,7 @@ export default function App() {
       .then((s) => {
         setState(s);
         setReady(true);
+        void loadUndo().then(setUndo);
       })
       .catch(() =>
         setError(
@@ -131,13 +132,16 @@ export default function App() {
         ...next,
         entries: expandEntries(next, jalaliMonth(today(), 24).end),
       });
-      const saved = await saveState({
-        ...next,
-        history: [
-          { date: new Date().toISOString(), action },
-          ...(isUndo ? state.history : next.history),
-        ].slice(0, 100),
-      });
+      const saved = await saveState(
+        {
+          ...next,
+          history: [
+            { date: new Date().toISOString(), action },
+            ...(isUndo ? state.history : next.history),
+          ].slice(0, 100),
+        },
+        !isUndo,
+      );
       setUndo(isUndo ? null : state);
       setState(saved);
       return true;
@@ -224,6 +228,10 @@ export default function App() {
         categoryId: String(f.get("categoryId") || "") || undefined,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
+        source: f.get("source"),
+        notes: f.get("notes"),
+        incomeType: f.get("incomeType"),
+        certainty: f.get("certainty"),
         title: f.get("title"),
         kind: f.get("kind"),
         amount: amount ? parseMoney(amount) : null,
@@ -588,6 +596,11 @@ export default function App() {
                     <span className="tag">{labels[e.kind]}</span>
                     <h2>{e.title}</h2>
                     <p>
+                      {e.source} {e.incomeType} ·{" "}
+                      {e.certainty === "committed" ? "قطعی" : "پیش‌بینی‌شده"}
+                    </p>
+                    {e.notes && <p>{e.notes}</p>}
+                    <p>
                       {dateLabel(e.dueDate)} ·{" "}
                       {!e.confirmed
                         ? "نیازمند تأیید"
@@ -763,6 +776,46 @@ export default function App() {
                 required
                 maxLength={100}
                 defaultValue={editor === "new" ? "" : editor.title}
+              />
+            </label>
+            <label>
+              منبع درآمد / هزینه
+              <input
+                name="source"
+                maxLength={100}
+                defaultValue={editor === "new" ? "" : (editor.source ?? "")}
+              />
+            </label>
+            <label>
+              نوع درآمد
+              <input
+                name="incomeType"
+                maxLength={60}
+                defaultValue={editor === "new" ? "" : (editor.incomeType ?? "")}
+                placeholder="حقوق، پاداش، هدیه…"
+              />
+            </label>
+            <label>
+              وضعیت برنامه
+              <select
+                name="certainty"
+                aria-label="وضعیت برنامه"
+                defaultValue={
+                  editor === "new"
+                    ? "expected"
+                    : (editor.certainty ?? "expected")
+                }
+              >
+                <option value="expected">پیش‌بینی‌شده</option>
+                <option value="committed">قطعی</option>
+              </select>
+            </label>
+            <label>
+              توضیحات
+              <textarea
+                name="notes"
+                maxLength={2000}
+                defaultValue={editor === "new" ? "" : (editor.notes ?? "")}
               />
             </label>
             <label>

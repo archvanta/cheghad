@@ -107,3 +107,22 @@ it("دسته نامعتبر و نسخه‌های مبلغ تکراری رد می
     }),
   ).toThrow();
 });
+it("جایگزینی برنامه سوابق مجازی گذشته را نگه می‌دارد", async () => {
+  const { replaceSchedule } = await import("./recurring");
+  const { today } = await import("./model");
+  const r = makeRule({ end: "2025-05-22" });
+  const start = today();
+  const next = replaceSchedule(
+    { ...emptyState(), rules: [r] },
+    {
+      ...r,
+      start,
+      end: null,
+      title: "جدید",
+      revisions: [{ from: start, amount: 2000 }],
+    },
+    start,
+  );
+  expect(next.entries.map((e) => e.amount)).toEqual([1000, 1000, 1000]);
+  expect(next.entries[0].title).toBe(r.title);
+});

@@ -32,7 +32,7 @@ test("تکرار، بودجه، پرداخت مستقل و بازگردانی ت
     .filter({
       has: page.locator("summary", { hasText: "هزینه تکراری عمومی" }),
     });
-  await rule.locator("summary").click();
+  await rule.locator(":scope > summary").click();
   await rule.getByLabel("مبلغ جدید").fill("۳۰۰");
   await rule.getByRole("button", { name: "ذخیره مبلغ آینده" }).click();
   await expect(rule).toContainText("۳۰۰");

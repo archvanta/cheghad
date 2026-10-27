@@ -18,3 +18,13 @@ it("پشتیبان نسخه ۱ بدون تغییر مبالغ و پرداخت‌
   await db.documents.put({ id: "main", data: old as never });
   expect((await loadState()).version).toBe(2);
 });
+it("نسخه قبل برای Undo در IndexedDB می‌ماند و بازگردانی آن اتمیک است", async () => {
+  await db.documents.clear();
+  await saveState({ ...emptyState(), openingBalance: 100 });
+  await saveState({ ...emptyState(), openingBalance: 200 });
+  const { loadUndo } = await import("./store");
+  expect((await loadUndo())?.openingBalance).toBe(100);
+  await saveState((await loadUndo())!, false);
+  expect((await loadState()).openingBalance).toBe(100);
+  expect(await loadUndo()).toBeNull();
+});

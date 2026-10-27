@@ -1,8 +1,7 @@
-import AiPanel from "./ai/AiPanel";
+import StrategyComparison from "./StrategyComparison";
 import EntryEditor, { kindNames } from "./EntryEditor";
 import PaymentDialog from "./PaymentDialog";
 import SettingsPanel from "./SettingsPanel";
-import { endpointUrl } from "./ai/protocol";
 import {
   entrySchema,
   ledgerSchema,
@@ -31,7 +30,6 @@ import {
   CreditCard,
   Coins,
   Plane,
-  MessageCircle,
   Plus,
   Download,
   Upload,
@@ -59,7 +57,6 @@ const tabs = [
   "اقساط",
   "طلا و دلار",
   "شبیه‌ساز",
-  "دستیار هوش مصنوعی",
   "تنظیمات",
 ] as const;
 type Tab = (typeof tabs)[number];
@@ -88,15 +85,7 @@ export default function App() {
     [payment, setPayment] = useState<Entry | null>(null),
     [query, setQuery] = useState(""),
     [kindFilter, setKindFilter] = useState("all"),
-    [sort, setSort] = useState("date"),
-    [endpoint, setEndpointState] = useState(() => {
-      try {
-        const v = localStorage.getItem("cheghad-ai-endpoint");
-        return v ? endpointUrl(v) : "";
-      } catch {
-        return "";
-      }
-    });
+    [sort, setSort] = useState("date");
   const lock = useRef(false),
     latest = useRef(ledger);
   latest.current = ledger;
@@ -233,15 +222,6 @@ export default function App() {
       setError(e instanceof Error ? e.message : "فایل معتبر نیست");
     }
   }
-  const setEndpoint = (s: string) => {
-    try {
-      if (s) localStorage.setItem("cheghad-ai-endpoint", s);
-      else localStorage.removeItem("cheghad-ai-endpoint");
-      setEndpointState(s);
-    } catch {
-      setError("ذخیره تنظیم آدرس ممکن نشد");
-    }
-  };
   if (!loaded)
     return (
       <main className="main" role="status">
@@ -254,7 +234,6 @@ export default function App() {
     CreditCard,
     Coins,
     Plane,
-    MessageCircle,
     Settings2,
   ];
   return (
@@ -624,9 +603,10 @@ export default function App() {
                 شبیه‌سازی است و داده واقعی را تغییر نمی‌دهد.
               </p>
             </div>
+            <StrategyComparison ledger={ledger} start={nextMonth(month, 1)} />
             <div className="twocol">
               <div className="panel">
-                <h3>مقادیر سناریو</h3>
+                <h3>مقادیر سناریوی آزاد</h3>
                 <Range
                   title="بودجه تخصیص از نقد واقعی"
                   v={gift}
@@ -723,19 +703,9 @@ export default function App() {
             </div>
           </>
         )}
-        {tab === "دستیار هوش مصنوعی" && (
-          <AiPanel
-            ledger={ledger}
-            month={month}
-            endpoint={endpoint}
-            commit={update}
-          />
-        )}
         {tab === "تنظیمات" && (
           <SettingsPanel
             ledger={ledger}
-            endpoint={endpoint}
-            setEndpoint={setEndpoint}
             commit={update}
             backup={backup}
             importFile={importFile}

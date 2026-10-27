@@ -1,4 +1,81 @@
 /* Independent financial design system, informed by Frontier's surfaces and gradients. */
+.strategy-comparison {
+  margin-bottom: 24px;
+}
+.strategy-initial {
+  max-width: 340px;
+  margin-bottom: 24px;
+}
+.strategy-budget {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+}
+.strategy-budget > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.strategy-budget output {
+  font-size: 1.5rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.strategy-budget input[type="range"] {
+  width: 100%;
+  min-height: 36px;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+.strategy-table {
+  width: 100%;
+}
+.strategy-table caption {
+  text-align: right;
+  font-weight: 700;
+  padding-bottom: 20px;
+}
+.strategy-table td small {
+  display: block;
+  margin-top: 5px;
+}
+.strategy-table tfoot {
+  font-weight: 800;
+}
+.strategy-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.strategy-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--bg);
+}
+.strategy-result > strong {
+  font-size: 1.7rem;
+}
+.strategy-result > small,
+.strategy-result > span {
+  color: var(--muted);
+}
+@media (max-width: 600px) {
+  .strategy-budget > div:first-child {
+    align-items: start;
+    flex-direction: column;
+  }
+  .strategy-results {
+    grid-template-columns: 1fr;
+  }
+  .strategy-table {
+    min-width: 420px;
+  }
+}
 :root {
   color-scheme: dark;
   --bg: #080a10;

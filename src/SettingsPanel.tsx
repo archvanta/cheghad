@@ -6,11 +6,8 @@ import {
   money,
   type Ledger,
 } from "./finance";
-import { endpointUrl } from "./ai/protocol";
 export default function SettingsPanel({
   ledger,
-  endpoint,
-  setEndpoint,
   commit,
   backup,
   importFile,
@@ -18,8 +15,6 @@ export default function SettingsPanel({
   busy,
 }: {
   ledger: Ledger;
-  endpoint: string;
-  setEndpoint: (s: string) => void;
   commit: (fn: (l: Ledger) => Ledger, action: string) => Promise<boolean>;
   backup: () => void;
   importFile: (f?: File) => Promise<void>;
@@ -137,40 +132,6 @@ export default function SettingsPanel({
         </form>
       </section>
       <section className="panel">
-        <h2>اتصال اختیاری هوش مصنوعی</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            try {
-              const f = new FormData(e.currentTarget),
-                value = String(f.get("endpoint")).trim();
-              setEndpoint(value ? endpointUrl(value) : "");
-              setError("");
-            } catch {
-              setError(
-                "نشانی HTTPS بک‌اند لازم است؛ رمز، کلید و پارامتر توکن در URL مجاز نیست.",
-              );
-            }
-          }}
-        >
-          <label>
-            نشانی پایه بک‌اند امن Gemini
-            <input
-              name="endpoint"
-              type="url"
-              defaultValue={endpoint}
-              placeholder="https://api.example.com/api/ai"
-            />
-          </label>
-          <p className="muted">
-            کلید Gemini فقط Secret سرور است؛ اینجا جای کلید یا توکن نیست. ورود
-            از کوکی امن Cloudflare Access انجام می‌شود. بدون پیکربندی احراز
-            هویت، سرور درخواست را رد می‌کند.
-          </p>
-          <button className="button">ذخیره نشانی بک‌اند</button>
-        </form>
-      </section>
-      <section className="panel">
         <h2>بودجه دسته‌ها</h2>
         <form
           onSubmit={async (e) => {
@@ -270,9 +231,8 @@ export default function SettingsPanel({
       <section className="panel">
         <h2>مالکیت و پشتیبان داده</h2>
         <p>
-          داده‌ها در IndexedDB همین مرورگر می‌مانند. ارسال به Gemini فقط با
-          رضایت جداگانه در پنل AI است. حذف داده مرورگر باعث از دست رفتن اطلاعات
-          می‌شود؛ پشتیبان خصوصی بگیر.
+          داده‌ها در همین مرورگر می‌مانند و به سرویس بیرونی ارسال نمی‌شوند. حذف
+          داده مرورگر باعث از دست رفتن اطلاعات می‌شود؛ پشتیبان خصوصی بگیر.
         </p>
         <div className="actions">
           <button className="button" onClick={backup}>

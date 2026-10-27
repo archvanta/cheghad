@@ -817,3 +817,82 @@ legend {
   color: var(--muted);
   font-size: 13px;
 }
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  text-align: center;
+}
+.calendar-grid > button {
+  min-height: 75px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.calendar-grid .selected-day {
+  outline: 2px solid var(--accent);
+}
+.event-dots {
+  display: flex;
+  gap: 3px;
+}
+.event-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: block;
+}
+.income-dot {
+  background: #65dfb5;
+}
+.expense-dot {
+  background: #b08bf5;
+}
+.debt-dot {
+  background: #f3c57b;
+}
+.asset-dot {
+  background: #8ca7ff;
+}
+.cash-chart {
+  width: 100%;
+  height: 190px;
+  direction: ltr;
+}
+.table-scroll {
+  overflow: auto;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  background: var(--surface);
+}
+caption {
+  padding: 16px;
+  color: var(--muted);
+}
+th,
+td {
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+.daily-list {
+  max-height: 350px;
+  overflow: auto;
+}
+@media (max-width: 700px) {
+  .calendar-grid {
+    gap: 4px;
+  }
+  .calendar-grid > button {
+    min-height: 60px;
+    padding: 6px;
+    font-size: 12px;
+  }
+}

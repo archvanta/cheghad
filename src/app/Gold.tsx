@@ -27,11 +27,13 @@ export default function Gold({
   commit,
   busy,
   money,
+  unit = "تومان",
 }: {
   state: State;
   commit: (s: State, a?: string) => Promise<boolean>;
   busy: boolean;
   money: (n: number) => string;
+  unit?: string;
 }) {
   const [asset, setAsset] = useState<GoldAsset | null>(null),
     [trade, setTrade] = useState<GoldTransaction | null>(null),
@@ -315,7 +317,7 @@ export default function Gold({
               بهای مانده {money(a.cost)}؛ میانگین{" "}
               {a.average === null ? "—" : money(a.average)}؛ سود محقق‌نشده{" "}
               {a.unrealized === null ? "نامعلوم" : money(a.unrealized)}؛ سود
-              فروش {money(a.realized)} تومان؛ بازده مانده{" "}
+              فروش {money(a.realized)} {unit}؛ بازده مانده{" "}
               {a.returnPercent ?? "—"}٪
             </p>
             <p>قیمت دستی · تاریخ {a.priceDate ?? "تعیین نشده"}</p>
@@ -362,7 +364,7 @@ export default function Gold({
               </strong>
               <p>
                 {t.date} · {t.quantity} واحد · مبلغ خالص{" "}
-                {money(tradeValue(t).cash)} تومان{" "}
+                {money(tradeValue(t).cash)} {unit}{" "}
                 {t.opening ? " · موجودی اولیه" : ""}
               </p>
               <p>{t.notes}</p>

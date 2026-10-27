@@ -12,11 +12,13 @@ export default function Simulator({
   commit,
   busy,
   money,
+  unit = "تومان",
 }: {
   state: State;
   commit: (s: State, a?: string) => Promise<boolean>;
   busy: boolean;
   money: (n: number) => string;
+  unit?: string;
 }) {
   const [editing, setEditing] = useState<Scenario | null>(null),
     [error, setError] = useState(""),

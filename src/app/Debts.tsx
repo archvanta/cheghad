@@ -13,11 +13,13 @@ export default function Debts({
   commit,
   busy,
   money,
+  unit = "تومان",
 }: {
   state: State;
   commit: (s: State, a?: string) => Promise<boolean>;
   busy: boolean;
   money: (n: number) => string;
+  unit?: string;
 }) {
   const [editing, setEditing] = useState<Debt | null>(null),
     [error, setError] = useState(""),
@@ -227,7 +229,7 @@ export default function Debts({
             <p>
               تعداد اقساط: {entries.length} · باقی‌مانده:{" "}
               {entries.filter((e) => remaining(e) > 0).length} · مانده{" "}
-              {money(balance)} تومان
+              {money(balance)} {unit}
             </p>
             <p>{debt.notes}</p>
             <div className="actions">
@@ -329,7 +331,7 @@ export default function Debts({
                 <p>
                   فرض: همه اقساط پرداخت‌نشده حذف می‌شوند. خروج نقد{" "}
                   {money(quote.cash)}؛ کاهش بدهی {money(quote.remaining)}؛ اثر
-                  بر خالص دارایی {money(quote.remaining - quote.cash)} تومان.
+                  بر خالص دارایی {money(quote.remaining - quote.cash)} {unit}.
                   این عدد صرفه‌جویی ماهانه جدید نیست.
                 </p>
                 {debt.allowEarly !== "yes" ? (

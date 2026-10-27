@@ -14,8 +14,15 @@ type Props = {
   commit: (s: State, action?: string) => Promise<boolean>;
   busy: boolean;
   money: (n: number) => string;
+  unit?: string;
 };
-export default function Planner({ state, commit, busy, money }: Props) {
+export default function Planner({
+  state,
+  commit,
+  busy,
+  money,
+  unit = "تومان",
+}: Props) {
   const [error, setError] = useState(""),
     [offset, setOffset] = useState(0);
   const month = jalaliMonth(today(), offset),
@@ -373,7 +380,7 @@ export default function Planner({ state, commit, busy, money }: Props) {
           </details>
         ))}
       </section>
-      <CostAnalysis money={money} />
+      <CostAnalysis money={money} unit={unit} />
       <section className="card">
         <h2>بودجه و مصرف دسته‌ها</h2>
         <div className="month-picker">
@@ -395,16 +402,16 @@ export default function Planner({ state, commit, busy, money }: Props) {
           <details key={c.id}>
             <summary>
               {c.name} · پرداخت واقعی {money(c.actual)} / سقف{" "}
-              {c.budget === null ? "تعیین‌نشده" : money(c.budget)} تومان
+              {c.budget === null ? "تعیین‌نشده" : money(c.budget)} {unit}
             </summary>
             <p>
-              هزینه برنامه‌ریزی‌شده: {money(c.planned)} تومان{" "}
+              هزینه برنامه‌ریزی‌شده: {money(c.planned)} {unit}{" "}
               {c.unknown ? " · نیازمند تکمیل" : ""}
             </p>
             {c.budget !== null && (
               <p className={c.actual > c.budget ? "negative" : "positive"}>
                 {c.actual > c.budget ? "اضافه‌مصرف" : "مانده بودجه"}:{" "}
-                {money(Math.abs(c.budget - c.actual))} تومان
+                {money(Math.abs(c.budget - c.actual))} {unit}
               </p>
             )}
             <form
@@ -501,7 +508,13 @@ export default function Planner({ state, commit, busy, money }: Props) {
   );
 }
 
-function CostAnalysis({ money }: { money: (n: number) => string }) {
+function CostAnalysis({
+  money,
+  unit = "تومان",
+}: {
+  money: (n: number) => string;
+  unit?: string;
+}) {
   const [saving, setSaving] = useState<number | null>(null);
   return (
     <section className="card">
@@ -535,7 +548,7 @@ function CostAnalysis({ money }: { money: (n: number) => string }) {
         <p>
           تغییر مانده با فرض هزینه ثابت: ماهانه {money(saving)}؛ ۳ ماه{" "}
           {money(saving * 3)}؛ ۶ ماه {money(saving * 6)}؛ ۱۲ ماه{" "}
-          {money(saving * 12)} تومان. این محاسبه فرضی داده‌های دفتر را تغییر
+          {money(saving * 12)} {unit}. این محاسبه فرضی داده‌های دفتر را تغییر
           نمی‌دهد.
         </p>
       )}

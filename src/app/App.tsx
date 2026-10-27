@@ -47,6 +47,7 @@ import {
   dailyForecast,
 } from "../domain/engine";
 import { loadUndo, loadState, saveState, readBackup } from "../database/store";
+const Insights = lazy(() => import("./Insights"));
 const Simulator = lazy(() => import("./Simulator"));
 const Gold = lazy(() => import("./Gold"));
 const Debts = lazy(() => import("./Debts"));
@@ -106,12 +107,33 @@ export default function App() {
     [ready, setReady] = useState(false),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  const [page, setPage] = useState("dashboard"),
+  const [page, setPage] = useState(() => location.hash.slice(1) || "dashboard"),
     [offset, setOffset] = useState(0),
     [editor, setEditor] = useState<Entry | "new" | null>(null),
     [payment, setPayment] = useState<Entry | null>(null),
     [filter, setFilter] = useState("all"),
     [query, setQuery] = useState("");
+  useEffect(() => {
+    const change = () =>
+      setPage(
+        [
+          "dashboard",
+          "entries",
+          "planner",
+          "debts",
+          "gold",
+          "simulator",
+          "calendar",
+          "forecast",
+          "reports",
+          "settings",
+        ].includes(location.hash.slice(1))
+          ? location.hash.slice(1)
+          : "dashboard",
+      );
+    window.addEventListener("hashchange", change);
+    return () => window.removeEventListener("hashchange", change);
+  }, []);
   useEffect(() => {
     loadState()
       .then((s) => {
@@ -164,8 +186,15 @@ export default function App() {
   }
   const money = (n: number) =>
     new Intl.NumberFormat(state.digits, { maximumFractionDigits: 1 }).format(
-      new Decimal(n).div(10).toNumber(),
+      new Decimal(n).div(state.displayUnit === "rial" ? 1 : 10).toNumber(),
     );
+  const unit = state.displayUnit === "rial" ? "ریال" : "تومان";
+  const formatDate = (d: string) =>
+    new Intl.DateTimeFormat(state.digits, {
+      dateStyle: "medium",
+      calendar: state.calendar,
+      timeZone: "UTC",
+    }).format(new Date(d + "T12:00:00Z"));
   const month = jalaliMonth(today(), offset),
     r = summary(state, month.start, month.end, today());
   const forecast = dailyForecast(
@@ -294,6 +323,9 @@ export default function App() {
               ["debts", "بدهی‌ها", Wallet],
               ["gold", "طلا و دلار", Wallet],
               ["simulator", "آزمایشگاه تصمیم", Wallet],
+              ["calendar", "تقویم", List],
+              ["forecast", "پیش‌بینی", List],
+              ["reports", "گزارش‌ها", List],
               ["settings", "تنظیمات", Settings],
             ].map(([id, label, Icon]) => (
               <button
@@ -315,6 +347,9 @@ export default function App() {
                   ["debts", "بدهی‌ها"],
                   ["gold", "طلا و دلار"],
                   ["simulator", "آزمایشگاه تصمیم"],
+                  ["calendar", "تقویم"],
+                  ["forecast", "پیش‌بینی"],
+                  ["reports", "گزارش‌ها"],
                 ].map(([id, label]) => (
                   <button
                     key={id}
@@ -393,17 +428,18 @@ export default function App() {
             <div>
               <p className="eyebrow">پولت کجا می‌ره؟ چقدر برات می‌مونه؟</p>
               <h1>
-                {page === "dashboard"
-                  ? "تصویر مالی تو"
-                  : page === "entries"
-                    ? "دفتر مالی"
-                    : page === "planner"
-                      ? "برنامه و بودجه"
-                      : page === "debts"
-                        ? "بدهی‌ها"
-                        : page === "gold"
-                          ? "طلا و دلار"
-                          : "تنظیمات و داده‌ها"}
+                {{
+                  dashboard: "تصویر مالی تو",
+                  entries: "دفتر مالی",
+                  planner: "برنامه و بودجه",
+                  debts: "بدهی‌ها",
+                  gold: "طلا و دلار",
+                  simulator: "آزمایشگاه تصمیم",
+                  calendar: "تقویم",
+                  forecast: "پیش‌بینی",
+                  reports: "گزارش‌ها",
+                  settings: "تنظیمات و داده‌ها",
+                }[page] ?? "تصویر مالی تو"}
               </h1>
             </div>
             <button
@@ -432,7 +468,7 @@ export default function App() {
                 >
                   <ChevronLeft />
                 </button>
-                <span>واحد: تومان</span>
+                <span>واحد: {unit}</span>
               </div>
               {!state.entries.length && !state.rules.length && (
                 <div className="intro">
@@ -462,7 +498,7 @@ export default function App() {
                   </div>
                   <div className="hero-number">
                     {money(r.cash)}
-                    <small>تومان</small>
+                    <small>{unit}</small>
                   </div>
                   <div className="balance-footer">
                     <span>مانده پیش‌بینی‌شده تا پایان {month.label}</span>
@@ -478,11 +514,11 @@ export default function App() {
                     className={`metric ${r.capacity < 0 ? "negative" : "positive"}`}
                   >
                     {money(r.capacity)}
-                    <small>تومان</small>
+                    <small>{unit}</small>
                   </div>
                   <p>
                     مانده پیش‌بینی‌شده منهای ذخیره هدف {money(state.reserve)}{" "}
-                    تومان. هزینه‌های ثبت‌نشده در این عدد نیستند.
+                    {unit}. هزینه‌های ثبت‌نشده در این عدد نیستند.
                   </p>
                 </Card>
                 <Card title="قسط بعدی">
@@ -495,11 +531,11 @@ export default function App() {
                   </span>
                   <div className="metric">
                     {next ? money(remaining(next, today())) : "—"}
-                    <small>{next ? "تومان" : ""}</small>
+                    <small>{next ? unit : ""}</small>
                   </div>
                   <p>
                     {next
-                      ? `${next.title} · ${dateLabel(next.dueDate)}`
+                      ? `${next.title} · ${formatDate(next.dueDate)}`
                       : "با ثبت اقساط، موعد بعدی اینجا دیده می‌شود."}
                   </p>
                   {next && (
@@ -658,7 +694,7 @@ export default function App() {
                       </p>
                       {e.notes && <p>{e.notes}</p>}
                       <p>
-                        {dateLabel(e.dueDate)} ·{" "}
+                        {formatDate(e.dueDate)} ·{" "}
                         {e.cancelled
                           ? "لغوشده"
                           : !e.confirmed
@@ -676,7 +712,7 @@ export default function App() {
                       <strong>
                         {e.amount === null
                           ? "نامشخص"
-                          : money(e.amount) + " تومان"}
+                          : money(e.amount) + " " + unit}
                       </strong>
                       <p>
                         باقی‌مانده:{" "}
@@ -747,7 +783,7 @@ export default function App() {
                         <summary>تاریخچه پرداخت / دریافت</summary>
                         {e.payments.map((p) => (
                           <p key={p.id}>
-                            {dateLabel(p.date)} · {money(p.amount)} تومان
+                            {formatDate(p.date)} · {money(p.amount)} {unit}
                           </p>
                         ))}
                       </details>
@@ -757,22 +793,48 @@ export default function App() {
               </div>
             </>
           )}
+          {["calendar", "forecast", "reports"].includes(page) && (
+            <Insights
+              state={state}
+              mode={page as "calendar" | "forecast" | "reports"}
+              money={money}
+            />
+          )}
           {page === "simulator" && (
             <Simulator
               state={state}
               commit={commit}
               busy={busy}
               money={money}
+              unit={unit}
             />
           )}
           {page === "gold" && (
-            <Gold state={state} commit={commit} busy={busy} money={money} />
+            <Gold
+              state={state}
+              commit={commit}
+              busy={busy}
+              money={money}
+              unit={unit}
+            />
           )}
           {page === "debts" && (
-            <Debts state={state} commit={commit} busy={busy} money={money} />
+            <Debts
+              state={state}
+              commit={commit}
+              busy={busy}
+              money={money}
+              unit={unit}
+            />
           )}
           {page === "planner" && (
-            <Planner state={state} commit={commit} busy={busy} money={money} />
+            <Planner
+              state={state}
+              commit={commit}
+              busy={busy}
+              money={money}
+              unit={unit}
+            />
           )}
           {page === "settings" && (
             <div className="settings-grid">
@@ -794,6 +856,11 @@ export default function App() {
                         openingBalance: parseMoney(String(f.get("opening"))),
                         reserve: parseMoney(String(f.get("reserve"))),
                         digits: f.get("digits") as State["digits"],
+                        horizon: Number(f.get("horizon")) as State["horizon"],
+                        calendar: f.get("calendar") as State["calendar"],
+                        displayUnit: f.get(
+                          "displayUnit",
+                        ) as State["displayUnit"],
                       });
                     } catch {
                       setError("مبلغ معتبر و در محدوده دقت وارد کنید.");
@@ -821,6 +888,34 @@ export default function App() {
                       <option value="en-US">لاتین</option>
                     </select>
                   </label>
+                  <label>
+                    افق پیش‌بینی پیش‌فرض
+                    <select name="horizon" defaultValue={state.horizon}>
+                      {[3, 6, 12, 18, 24].map((n) => (
+                        <option key={n} value={n}>
+                          {n} ماه
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    تقویم نمایش
+                    <select name="calendar" defaultValue={state.calendar}>
+                      <option value="persian">شمسی</option>
+                      <option value="gregory">میلادی</option>
+                    </select>
+                  </label>
+                  <label>
+                    واحد نمایش مبالغ
+                    <select name="displayUnit" defaultValue={state.displayUnit}>
+                      <option value="toman">تومان</option>
+                      <option value="rial">ریال</option>
+                    </select>
+                  </label>
+                  <p>
+                    ورودی فرم‌ها همچنان با واحد صریح تومان هستند؛ این تنظیم واحد
+                    نمایش نتایج را تغییر می‌دهد.
+                  </p>
                   <button className="primary" disabled={busy}>
                     ذخیره تنظیمات
                   </button>
@@ -1042,7 +1137,7 @@ export default function App() {
               }}
             >
               <p>
-                {payment.title} · مانده {money(remaining(payment))} تومان
+                {payment.title} · مانده {money(remaining(payment))} {unit}
               </p>
               {amountInput(
                 "amount",

@@ -78,14 +78,14 @@
 }
 :root {
   color-scheme: dark;
-  --bg: #080a10;
-  --sidebar: #0d1018;
-  --surface: #121621;
-  --input: #191f2d;
-  --line: #30394e;
+  --bg: #000000;
+  --sidebar: #0a0a0b;
+  --surface: #101011;
+  --input: #19191b;
+  --line: #303034;
   --ink: #f4f5fa;
   --muted: #a8b1c5;
-  --accent: #acbaff;
+  --accent: #e8ff1f;
   --good: #79e0b6;
   --bad: #ff9999;
   --warn: #f5ce8b;
@@ -921,5 +921,81 @@ html[data-theme="light"] .bubble.user {
     transition: none !important;
     animation: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Compact navigation lets the reference dashboard fill the canvas. */
+.app {
+  background: var(--bg);
+}
+@media (min-width: 701px) {
+  .app {
+    display: block;
+  }
+  .sidebar {
+    position: relative;
+    width: 100%;
+    max-width: 1440px;
+    height: auto;
+    margin: auto;
+    padding: 20px 32px 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    background: transparent;
+  }
+  .brand {
+    padding: 0;
+    margin-inline-end: auto;
+  }
+  .brand small {
+    font-size: 9px;
+  }
+  .nav {
+    width: auto;
+    padding: 10px 13px;
+    font-size: 12px;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .navlabel,
+  .sidefoot {
+    display: none;
+  }
+  .main {
+    max-width: 1440px;
+    padding: 28px 32px 40px;
+  }
+}
+@media (min-width: 701px) and (max-width: 1000px) {
+  .sidebar {
+    flex-wrap: wrap;
+    padding-inline: 24px;
+  }
+  .brand {
+    flex-basis: 100%;
+    margin-bottom: 8px;
+  }
+}
+.nav.active {
+  background: var(--ink);
+  color: var(--bg);
+}
+.nav:hover:not(.active) {
+  background: var(--surface);
+  color: var(--ink);
+}
+@media (max-width: 700px) {
+  .sidebar {
+    gap: 0;
+    padding: 4px 2px;
+  }
+  .sidebar .nav {
+    width: auto;
+    min-width: 60px;
+    flex: 1 0 0;
+    font-size: 9px;
+    padding-inline: 2px;
   }
 }

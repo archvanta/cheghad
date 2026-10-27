@@ -1,3 +1,4 @@
+import FinanceBento from "./components/ui/finance-bento";
 import StrategyComparison from "./StrategyComparison";
 import EntryEditor, { kindNames } from "./EntryEditor";
 import PaymentDialog from "./PaymentDialog";
@@ -11,36 +12,20 @@ import {
   portfolio,
   actualCash,
   monthOf,
-  dueDate,
   today,
 } from "./finance";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  CartesianGrid,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-} from "recharts";
 import {
   Wallet,
   CreditCard,
   Coins,
   Plane,
   Plus,
-  Download,
-  Upload,
-  Trash2,
   LayoutDashboard,
   Settings2,
-  Send,
 } from "lucide-react";
 import { initial } from "./data";
 import {
-  cashflow,
   forecast,
   million,
   money,
@@ -131,9 +116,7 @@ export default function App() {
       setBusy(false);
     }
   }
-  const report = useMemo(() => forecast(ledger, month, 12), [ledger, month]);
-  const current = cashflow(ledger, month),
-    cash = actualCash(ledger),
+  const cash = actualCash(ledger),
     holdings = portfolio(ledger);
   const scenarioResult = useMemo(() => {
     try {
@@ -328,108 +311,7 @@ export default function App() {
           )}
         </div>
         {tab === "داشبورد" && (
-          <>
-            <div className="hero">
-              <span>نقشه مالی تو، همین‌جا</span>
-              <h2>هر تومن رو آگاهانه خرج کن.</h2>
-              <p>
-                مدیریت دقیق درآمد، اقساط، هزینه و سرمایه‌گذاری در یک نگاه. تمام
-                اعداد قابل‌ویرایش‌اند.
-              </p>
-              <button
-                className="button primary"
-                onClick={() => setTab("شبیه‌ساز")}
-              >
-                آزمایشگاه تصمیم‌های مالی ←
-              </button>
-            </div>
-            <div className="stats">
-              <Card
-                name="درآمد این ماه"
-                value={money(current.income)}
-                hint="برنامه‌ریزی‌شده"
-              />
-              <Card
-                name="اقساط این ماه"
-                value={money(current.installments)}
-                hint="جمع سررسیدها"
-              />
-              <Card
-                name="هزینه این ماه"
-                value={money(current.expenses)}
-                hint="برنامه‌ریزی‌شده"
-              />
-              <Card
-                name="موجودی نقد واقعی"
-                value={money(cash)}
-                hint="نقد واقعی، بدون درآمد مورد انتظار"
-                accent
-              />
-            </div>
-            <div className="stats">
-              <Card
-                name="پایان بازه پیش‌بینی"
-                value={money(report[0].cash)}
-                hint="با فرض وصول و پرداخت"
-              />
-              <Card
-                name="ظرفیت پس از ذخیره"
-                value={money(report[0].cash - ledger.profile.reserve)}
-                hint="کسری با عدد منفی نمایش داده می‌شود"
-              />
-              {holdings.map((a) => (
-                <Card
-                  key={a.asset}
-                  name={a.asset === "gold" ? "طلای موجود" : "دلار موجود"}
-                  value={a.quantity}
-                  hint={
-                    a.value === null ? "قیمت نیازمند تکمیل" : money(a.value)
-                  }
-                />
-              ))}
-            </div>
-            {current.unknown > 0 && (
-              <p className="notice">
-                برخی مبالغ نامشخص یا تأییدنشده‌اند؛ پیش‌بینی کامل نیست.
-              </p>
-            )}
-            <div className="panel">
-              <div className="panelhead">
-                <h3>جریان نقد ماهانه</h3>
-                <span>۱۲ ماه از بازه انتخاب‌شده</span>
-              </div>
-              <div className="chart">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={report.map((x) => ({
-                      ...x,
-                      label: fmtMonth(x.month).split(" ")[0],
-                      income: x.income / 1e6,
-                      cost: (x.expenses + x.installments) / 1e6,
-                    }))}
-                  >
-                    <CartesianGrid stroke="var(--line)" vertical={false} />
-                    <XAxis dataKey="label" stroke="var(--muted)" />
-                    <YAxis stroke="var(--muted)" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar
-                      dataKey="income"
-                      name="درآمد (میلیون)"
-                      fill="#9185ff"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="cost"
-                      name="هزینه و اقساط"
-                      fill="#5acaca"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </>
+          <FinanceBento ledger={ledger} month={month} onNavigate={setTab} />
         )}
         {["درآمد و هزینه", "اقساط", "طلا و دلار"].includes(tab) && (
           <div className="panel">
@@ -754,25 +636,6 @@ export default function App() {
           commit={(l) => update(() => l, "ثبت رویداد واقعی: " + payment.name)}
         />
       )}
-    </div>
-  );
-}
-function Card({
-  name,
-  value,
-  hint,
-  accent = false,
-}: {
-  name: string;
-  value: string;
-  hint: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className={"stat " + (accent ? "accent" : "")}>
-      <p>{name}</p>
-      <h2>{value}</h2>
-      <small>{hint}</small>
     </div>
   );
 }

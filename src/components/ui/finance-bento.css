@@ -1,0 +1,477 @@
+.finance-bento {
+  --fb-muted: #ffffffb3;
+  color: #fff;
+}
+.fb-toolbar,
+.fb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fb-toolbar {
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.fb-toolbar p {
+  color: var(--ink);
+  margin: 0;
+  font-size: 14px;
+}
+.fb-toolbar p span {
+  color: var(--muted);
+}
+.fb-segment {
+  display: flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.fb-segment button {
+  border: 0;
+  border-radius: 12px;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--muted);
+}
+.fb-segment button[aria-pressed="true"] {
+  background: #fff;
+  color: #111;
+}
+.fb-empty,
+.fb-plan {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  color: var(--muted);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.fb-empty {
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.fb-empty button,
+.fb-plan button {
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+}
+.fb-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
+}
+.fb-card {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  padding: 24px;
+  isolation: isolate;
+  min-width: 0;
+  border: 1px solid #ffffff1f;
+  box-shadow: inset 0 1px 0 #ffffff35;
+}
+.fb-card::before {
+  content: "";
+  position: absolute;
+  inset: 10% 5% -12%;
+  border-radius: 70px;
+  filter: blur(44px);
+  z-index: -1;
+  background: var(--fb-core, transparent);
+  pointer-events: none;
+}
+.fb-blue {
+  background: linear-gradient(
+    180deg,
+    #b9a6ff,
+    #2e43ff 36%,
+    #2e43ff 74%,
+    #6d7dff
+  );
+  --fb-core: #05082a;
+}
+.fb-graph {
+  background: linear-gradient(
+    180deg,
+    #9a9aa8,
+    #3a3a44 36%,
+    #3a3a44 74%,
+    #55555f
+  );
+  --fb-core: #060608;
+}
+.fb-lime {
+  background: linear-gradient(
+    180deg,
+    #f4ffb8,
+    #a3c400 36%,
+    #a3c400 74%,
+    #c9e03a
+  );
+  --fb-core: #202900;
+}
+.fb-pink {
+  background: linear-gradient(
+    180deg,
+    #ffb3d6,
+    #df236f 36%,
+    #df236f 74%,
+    #ff6aa8
+  );
+  --fb-core: #3a031c;
+}
+.fb-copper {
+  background: linear-gradient(
+    180deg,
+    #f6bf96,
+    #c2683a 36%,
+    #c2683a 74%,
+    #dc8a5c
+  );
+  --fb-core: #1d0b05;
+}
+.fb-green {
+  background: linear-gradient(
+    180deg,
+    #a6e8c8,
+    #36956f 36%,
+    #36956f 74%,
+    #58b58c
+  );
+  --fb-core: #061d15;
+}
+.fb-glass {
+  background: #101011;
+  box-shadow: none;
+}
+.fb-networth {
+  grid-column: span 8;
+  min-height: 380px;
+}
+.fb-allocation {
+  grid-column: span 4;
+  min-height: 380px;
+}
+.fb-kpi {
+  grid-column: span 3;
+  min-height: 196px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fb-flow {
+  grid-column: span 5;
+  min-height: 340px;
+}
+.fb-gold {
+  grid-column: span 4;
+  min-height: 340px;
+}
+.fb-usd {
+  grid-column: span 3;
+  min-height: 340px;
+}
+.fb-card h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.fb-note,
+.fb-cap {
+  color: var(--fb-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.fb-cap {
+  display: block;
+  font-weight: 600;
+}
+.fb-note {
+  display: block;
+}
+.fb-legend {
+  display: flex;
+  gap: 16px;
+  color: var(--fb-muted);
+  font-size: 12px;
+}
+.fb-legend span,
+.fb-asset-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.fb-legend i,
+.fb-asset-list i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cash-dot {
+  background: #fff;
+}
+.gold-dot {
+  background: #b2b4ff;
+}
+.usd-dot {
+  background: #ffb37a;
+}
+.flow-dot {
+  background: #ffd0e6;
+}
+.fb-netnumber {
+  margin: 14px 0 4px;
+  position: relative;
+  z-index: 2;
+}
+.fb-netnumber strong {
+  font-size: clamp(30px, 4.6vw, 68px);
+  font-weight: 450;
+  line-height: 1.35;
+  letter-spacing: -2px;
+  font-variant-numeric: tabular-nums;
+}
+.fb-netnumber small {
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-inline-start: 10px;
+}
+.fb-stream {
+  position: absolute;
+  bottom: 26px;
+  left: 0;
+  right: 0;
+  height: 178px;
+}
+.fb-chart-note {
+  position: absolute;
+  bottom: 10px;
+  inset-inline: 24px;
+  color: var(--fb-muted);
+  font-size: 10px;
+}
+.fb-chip {
+  background: #ffffff20;
+  border-radius: 12px;
+  padding: 4px 9px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.fb-gauge {
+  position: relative;
+  max-width: 310px;
+  margin: 4px auto -4px;
+}
+.fb-gauge svg {
+  width: 100%;
+  display: block;
+}
+.fb-gauge > div {
+  position: absolute;
+  top: 47%;
+  width: 100%;
+  text-align: center;
+}
+.fb-gauge strong {
+  font-size: 48px;
+  font-weight: 300;
+  line-height: 1.15;
+}
+.fb-gauge strong small {
+  font-size: 16px;
+  color: var(--fb-muted);
+}
+.fb-gauge span {
+  display: block;
+  color: var(--fb-muted);
+  font-size: 12px;
+}
+.fb-asset-list {
+  margin-top: 12px;
+  font-size: 12px;
+}
+.fb-asset-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #ffffff20;
+}
+.fb-asset-list > div:last-child {
+  border: 0;
+}
+.fb-asset-list b {
+  font-weight: 500;
+}
+.fb-value {
+  display: block;
+  font-size: clamp(22px, 2.5vw, 36px);
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.fb-kpi .fb-value {
+  margin-top: 0;
+}
+.fb-meter {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 22px;
+  direction: ltr;
+  overflow: hidden;
+}
+.fb-meter i {
+  width: 2px;
+  height: 15px;
+  background: #ffffff30;
+  flex: 1;
+  max-width: 3px;
+}
+.fb-meter i:nth-child(6n + 1) {
+  height: 21px;
+}
+.fb-meter i.on {
+  background: #e8ff1f;
+}
+.fb-link {
+  display: block;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: #fff;
+  font-size: 12px;
+  text-align: start;
+  margin-top: auto;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.fb-payments {
+  gap: 6px;
+}
+.fb-payments > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #ffffff1a;
+  color: #fff;
+  font-size: 11px;
+  padding: 0;
+  text-align: start;
+}
+.fb-payments > button > span:nth-child(2) {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+.fb-payments > button small {
+  color: #ffffffb3;
+  white-space: nowrap;
+}
+.fb-payments > button b {
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.fb-payment-icon {
+  border-radius: 7px;
+  padding: 4px 7px;
+  background: #ffffff15;
+}
+.fb-flowchart {
+  height: 210px;
+  width: 100%;
+}
+.fb-flow > .fb-note {
+  margin: 12px 0 0;
+}
+.fb-flow .fb-note b {
+  color: #e8ff1f;
+}
+.fb-gold .fb-link {
+  margin-top: 12px;
+}
+.fb-usdchart {
+  width: 100%;
+  height: 155px;
+}
+.fb-usd > .fb-note {
+  margin-bottom: 0;
+}
+.finance-bento .recharts-wrapper:focus {
+  outline-offset: -3px;
+}
+@media (max-width: 1100px) {
+  .fb-networth {
+    grid-column: span 7;
+  }
+  .fb-allocation {
+    grid-column: span 5;
+  }
+  .fb-kpi {
+    grid-column: span 6;
+  }
+  .fb-flow {
+    grid-column: span 12;
+  }
+  .fb-gold,
+  .fb-usd {
+    grid-column: span 6;
+  }
+}
+@media (max-width: 700px) {
+  .fb-card {
+    padding: 20px;
+    border-radius: 24px;
+  }
+  .fb-networth,
+  .fb-allocation,
+  .fb-kpi,
+  .fb-gold,
+  .fb-usd {
+    grid-column: span 12;
+  }
+  .fb-networth {
+    min-height: 360px;
+  }
+  .fb-allocation {
+    min-height: 360px;
+  }
+  .fb-networth > .fb-row {
+    flex-wrap: wrap;
+  }
+  .fb-netnumber strong {
+    font-size: 42px;
+  }
+  .fb-netnumber small {
+    display: block;
+    font-size: 12px;
+  }
+  .fb-stream {
+    height: 150px;
+  }
+  .fb-chart-note {
+    font-size: 9px;
+  }
+  .fb-payments > button > span:nth-child(2) {
+    max-width: none;
+  }
+}

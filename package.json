@@ -12,8 +12,9 @@
     "test:e2e": "playwright test",
     "check": "npm test && npm run build",
     "deploy:accounts": "node scripts/deploy-accounts.mjs",
-    "test:accounts-runtime": "wrangler deploy --dry-run --config accounts/wrangler.toml --outdir .wrangler/runtime-check && node accounts/runtime-check.mjs",
-    "test:e2e:accounts": "playwright test --config playwright.account.config.ts"
+    "test:accounts-runtime": "wrangler deploy --dry-run --config wrangler.toml --outdir .wrangler/runtime-check && node accounts/runtime-check.mjs",
+    "test:e2e:accounts": "playwright test --config playwright.account.config.ts",
+    "build:accounts": "node scripts/build-accounts.mjs"
   },
   "dependencies": {
     "@fontsource-variable/vazirmatn": "^5.3.0",

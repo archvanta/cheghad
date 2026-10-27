@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { execFileSync } from "node:child_process";
-const workerName = "cheghad-private";
+const workerName = "cheghad";
 const env = process.env;
 const required = [
   "CLOUDFLARE_API_TOKEN",
@@ -96,13 +96,9 @@ const runEnv = {
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const npx = process.platform === "win32" ? "npx.cmd" : "npx";
 execFileSync(npm, ["run", "check"], { stdio: "inherit", env: runEnv });
-execFileSync(npm, ["run", "build"], {
-  stdio: "inherit",
-  env: { ...runEnv, GITHUB_PAGES: "false", VITE_ACCOUNT_API_BASE: "/api" },
-});
 const args = [
   "--config",
-  "accounts/wrangler.toml",
+  "wrangler.toml",
   "--var",
   `GITHUB_DATA_REPO:${env.GITHUB_DATA_REPO}`,
 ];
@@ -112,18 +108,14 @@ execFileSync(npx, ["wrangler", "deploy", ...args], {
   stdio: "inherit",
   env: runEnv,
 });
-execFileSync(
-  npx,
-  ["wrangler", "secret", "bulk", "--config", "accounts/wrangler.toml"],
-  {
-    input: JSON.stringify({
-      ...keys,
-      GITHUB_DATA_TOKEN: env.GITHUB_DATA_TOKEN,
-    }),
-    stdio: ["pipe", "inherit", "inherit"],
-    env: runEnv,
-  },
-);
+execFileSync(npx, ["wrangler", "secret", "bulk", "--config", "wrangler.toml"], {
+  input: JSON.stringify({
+    ...keys,
+    GITHUB_DATA_TOKEN: env.GITHUB_DATA_TOKEN,
+  }),
+  stdio: ["pipe", "inherit", "inherit"],
+  env: runEnv,
+});
 execFileSync(npx, ["wrangler", "deploy", ...args], {
   stdio: "inherit",
   env: runEnv,

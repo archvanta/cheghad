@@ -53,3 +53,14 @@ npm run test:accounts-runtime
 تست دوم مرورگر، API حساب را شبیه‌سازی می‌کند؛ تست runtime از Durable Object و Web Crypto واقعی شبیه‌ساز Workers و GitHub شبیه‌سازی‌شده استفاده می‌کند. تماس زنده و استقرار واقعی به دسترسی سرویس‌ها نیاز دارد.
 
 این طراحی از منابع مناسب سهمیه رایگان استفاده می‌کند؛ مصرف و محدودیت حساب Cloudflare و GitHub همچنان اعمال می‌شود. هیچ ارتقای طرح یا منبع پولی به طور خودکار ایجاد نمی‌شود.
+
+## استقرار از داشبورد Cloudflare متصل به GitHub
+
+Worker پروژه `cheghad` و شاخه تولید `main` است. تنظیمات اصلی در `wrangler.toml` ریشه قرار دارد. فرمان Deploy همان `npx wrangler deploy` است؛ فرمان build تنظیم‌شده در همین فایل، `npm run build:accounts` را اجرا می‌کند و `/api` و رابط را با هم منتشر می‌کند. به پیکربندی خودکار Vite نیاز نیست. اگر Build command جداگانه تعیین شده، می‌توان آن را `npm run build:accounts` قرار داد.
+
+در Settings → Variables and Secrets این متغیر عمومی و سه Secret را تنظیم کنید:
+
+- Text variable: `GITHUB_DATA_REPO` با نام کامل مخزن خصوصی.
+- Secrets: `GITHUB_DATA_TOKEN`، `AUTH_PEPPER` و `LEDGER_ENCRYPTION_KEY`.
+
+`CLOUDFLARE_API_TOKEN` کلید ورود کاربران برنامه نیست و جای هیچ‌کدام از این سه Secret قرار نمی‌گیرد. تنظیم `keep_vars` باعث حفظ متغیرهای داشبورد در استقرار بعدی می‌شود. کلیدهای رمزگذاری را ثابت و خارج از Git پشتیبان بگیرید. پس از تغییر تنظیمات، نسخه جدید را منتشر و ورود/ثبت‌نام را بررسی کنید.

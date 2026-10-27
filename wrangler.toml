@@ -1,19 +1,26 @@
-name = "cheghad-private"
-main = "worker.ts"
+name = "cheghad"
+main = "accounts/worker.ts"
 compatibility_date = "2026-10-01"
 workers_dev = true
+# Preserve the private repository variable configured in the Cloudflare dashboard.
+keep_vars = true
+
+[build]
+command = "npm run build:accounts"
+
 [assets]
-directory = "../dist"
+directory = "./dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
 run_worker_first = ["/api/*"]
-[vars]
-GITHUB_DATA_REPO = ""
+
 [[durable_objects.bindings]]
 name = "ACCOUNTS"
 class_name = "AccountVault"
+
 [[migrations]]
 tag = "accounts-v1"
 new_sqlite_classes = ["AccountVault"]
+
+# Configure GITHUB_DATA_REPO as a dashboard variable.
 # Server secrets: GITHUB_DATA_TOKEN, AUTH_PEPPER, LEDGER_ENCRYPTION_KEY.
-# This Worker serves both the UI and API so sessions stay same-origin.

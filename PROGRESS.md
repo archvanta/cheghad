@@ -46,3 +46,12 @@
 - انتشار ظاهر، لوگو، ورود اولیه و دمو در commit `d100ca6` و اجرای [40582227908](https://github.com/sadeghimohammadamin83-ship-it/cheghad/actions/runs/40582227908) موفق شد؛ build و deploy موفق، زمان کل ۴۱ ثانیه.
 - آدرس سایت: https://sadeghimohammadamin83-ship-it.github.io/cheghad/ ؛ درخواست HTTP مستقیم از این محیط همچنان ۴۰۳ دارد. موفقیت انتشار از صفحه عمومی GitHub Actions تأیید شد.
 - تکمیل اتصال Cloudflare، ساخت مخزن خصوصی و ثبت حساب/اطلاعات مالک پس از دسترسی معتبر باقی است.
+
+## اصلاح استقرار Cloudflare از GitHub
+
+- لاگ کاربر برای Worker `cheghad` بررسی شد؛ استقرار قبلی فقط static assets با اسکریپت ۰٫۳۱ KiB منتشر کرده و بک‌اند حساب را شامل نمی‌شد.
+- پیکربندی Wrangler به ریشه مخزن منتقل و نام سرویس با Worker موجود هماهنگ شد؛ `npx wrangler deploy` اکنون بک‌اند حساب و binding ذخیره را منتشر می‌کند.
+- build اختصاصی Cloudflare با `/api` و base ریشه اضافه شد؛ build مخصوص GitHub Pages جدا باقی است. متغیرهای داشبورد در استقرار بعدی حفظ می‌شوند.
+- آدرس استخراج‌شده از لاگ: https://cheghad.sadeghimohammadamin83.workers.dev ؛ HTTP مستقیم از محیط ما هنوز در proxy با ۴۰۳ متوقف می‌شود.
+- ۴۷ تست واحد، build حساب، dry-run با فرمان پیش‌فرض Wrangler و تست runtime رسمی محلی موفق شدند؛ بستهٔ Worker حدود ۸۷۳ KiB است و شامل بک‌اند حساب می‌شود.
+- اصلاحات برای اجرای build خودکار Cloudflare از GitHub آماده‌اند؛ فعال‌شدن ذخیره خصوصی همچنان به مخزن خصوصی و سه Secret بک‌اند وابسته است.

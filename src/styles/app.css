@@ -799,3 +799,21 @@ textarea {
     flex-direction: row;
   }
 }
+.comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 16px;
+}
+.comparison dd {
+  font-size: 23px;
+}
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  margin: 16px 0;
+}
+legend {
+  color: var(--muted);
+  font-size: 13px;
+}

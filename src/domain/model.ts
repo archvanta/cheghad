@@ -159,9 +159,56 @@ export const goldTransactionSchema = z
     (t) => !t.opening || t.side === "buy",
     "فقط خرید می‌تواند موجودی اولیه باشد",
   );
+export const scenarioSchema = z
+  .object({
+    id: z.string().uuid(),
+    title: z.string().trim().min(1).max(100),
+    available: money,
+    goldAmount: money,
+    usdAmount: money,
+    debtAmount: money,
+    reserveAmount: money,
+    goldAssetId: z.string().uuid().optional(),
+    usdAssetId: z.string().uuid().optional(),
+    debtId: z.string().uuid().optional(),
+    debtMode: z.enum(["face", "quote"]),
+    goldChange: z.number().min(-90).max(300),
+    usdChange: z.number().min(-90).max(300),
+    feeBps: z.number().int().min(0).max(10000),
+    plans: z.array(
+      z.object({
+        month: z.number().int().min(0).max(23),
+        assetId: z.string().uuid(),
+        budget: money,
+        price: money.nullable(),
+      }),
+    ),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .refine(
+    (s) =>
+      BigInt(s.goldAmount) +
+        BigInt(s.usdAmount) +
+        BigInt(s.debtAmount) +
+        BigInt(s.reserveAmount) <=
+      BigInt(s.available),
+    "تخصیص از مبلغ در دسترس بیشتر است",
+  );
 export const stateSchema = z
   .object({
-    version: z.literal(4),
+    version: z.literal(5),
+    scenarios: z.array(scenarioSchema),
+    horizon: z.union([
+      z.literal(3),
+      z.literal(6),
+      z.literal(12),
+      z.literal(18),
+      z.literal(24),
+    ]),
+    calendar: z.enum(["persian", "gregory"]),
+    displayUnit: z.enum(["toman", "rial"]),
+    onboarded: z.boolean(),
     goldAssets: z.array(goldAssetSchema),
     goldTransactions: z.array(goldTransactionSchema),
     debts: z.array(debtSchema),
@@ -218,6 +265,7 @@ export const stateSchema = z
     if (new Set(s.entries.map((e) => e.id)).size !== s.entries.length)
       ctx.addIssue({ code: "custom", message: "شناسه رکورد تکراری" });
   });
+export type Scenario = z.infer<typeof scenarioSchema>;
 export type GoldAsset = z.infer<typeof goldAssetSchema>;
 export type GoldTransaction = z.infer<typeof goldTransactionSchema>;
 export type Debt = z.infer<typeof debtSchema>;
@@ -225,7 +273,12 @@ export type Rule = z.infer<typeof ruleSchema>;
 export type Entry = z.infer<typeof entrySchema>;
 export type State = z.infer<typeof stateSchema>;
 export const emptyState = (): State => ({
-  version: 4,
+  version: 5,
+  scenarios: [],
+  horizon: 12,
+  calendar: "persian",
+  displayUnit: "toman",
+  onboarded: false,
   goldAssets: [],
   goldTransactions: [],
   debts: [],

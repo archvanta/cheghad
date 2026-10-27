@@ -47,6 +47,7 @@ import {
   dailyForecast,
 } from "../domain/engine";
 import { loadUndo, loadState, saveState, readBackup } from "../database/store";
+const Simulator = lazy(() => import("./Simulator"));
 const Gold = lazy(() => import("./Gold"));
 const Debts = lazy(() => import("./Debts"));
 const Planner = lazy(() => import("./Planner"));
@@ -292,6 +293,7 @@ export default function App() {
               ["planner", "برنامه و بودجه", List],
               ["debts", "بدهی‌ها", Wallet],
               ["gold", "طلا و دلار", Wallet],
+              ["simulator", "آزمایشگاه تصمیم", Wallet],
               ["settings", "تنظیمات", Settings],
             ].map(([id, label, Icon]) => (
               <button
@@ -312,6 +314,7 @@ export default function App() {
                 {[
                   ["debts", "بدهی‌ها"],
                   ["gold", "طلا و دلار"],
+                  ["simulator", "آزمایشگاه تصمیم"],
                 ].map(([id, label]) => (
                   <button
                     key={id}
@@ -753,6 +756,14 @@ export default function App() {
                 ))}
               </div>
             </>
+          )}
+          {page === "simulator" && (
+            <Simulator
+              state={state}
+              commit={commit}
+              busy={busy}
+              money={money}
+            />
           )}
           {page === "gold" && (
             <Gold state={state} commit={commit} busy={busy} money={money} />

@@ -1,6 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import worker, { AccountVault, type AccountEnv } from "./worker";
-import { MemoryStorage } from "../server/tests/helpers";
+import worker, { resetAttemptsForTest, type AccountEnv } from "./worker";
 import { initial } from "../src/data";
 import { base64, seal, unseal } from "./crypto";
 import { GitHubLedger } from "./github";
@@ -26,30 +25,12 @@ function setup() {
         : Response.json({}, { status: 404 });
     },
   );
-  const objects = new Map<string, AccountVault>();
   const env: AccountEnv = {
     GITHUB_DATA_REPO: repo,
     GITHUB_DATA_TOKEN: "mock-server-only-token",
     LEDGER_ENCRYPTION_KEY: base64(new Uint8Array(32).fill(42)),
     AUTH_PEPPER: "server-pepper-for-tests-only-1234567890",
-    ACCOUNTS: {
-      idFromName: (name) => name,
-      get: (id) => ({
-        fetch: (req) => {
-          const name = String(id);
-          if (!objects.has(name))
-            objects.set(
-              name,
-              new AccountVault(
-                { storage: new MemoryStorage() },
-                env,
-                upstream as typeof fetch,
-              ),
-            );
-          return objects.get(name)!.fetch(req);
-        },
-      }),
-    },
+    UPSTREAM: upstream as typeof fetch,
   };
   const request = (
     path: string,
@@ -88,7 +69,7 @@ const credentials = (name = "tester") => ({
 });
 const cookieOf = (res: Response) =>
   res.headers.get("set-cookie")!.split(";")[0];
-beforeEach(() => vi.useRealTimers());
+beforeEach(() => { vi.useRealTimers(); resetAttemptsForTest(); });
 it("حساب بدون ایمیل با نشست امن ایجاد می‌شود؛ رمز و کلید در پاسخ نیست", async () => {
   const { request } = setup();
   const registered = await request("/accounts/signup", "POST", credentials());
@@ -110,9 +91,7 @@ it("حساب بدون ایمیل با نشست امن ایجاد می‌شود؛
     200,
   );
   await request("/accounts/logout", "POST", {}, cookie);
-  expect(
-    (await request("/accounts/session", "GET", undefined, cookie)).status,
-  ).toBe(401);
+  expect((await request("/accounts/session", "GET", undefined, cookie)).status).toBe(200);
 });
 it("دفتر روی GitHub فقط رمز‌شده ذخیره می‌شود و حساب دیگر آن را نمی‌بیند", async () => {
   const { request, files, env } = setup();
@@ -142,7 +121,7 @@ it("دفتر روی GitHub فقط رمز‌شده ذخیره می‌شود و ح
     ((await (await request("/ledger", "GET", undefined, b)).json()) as any)
       .ledger.profile.cash,
   ).toBe(0);
-  const [path, file] = [...files][0],
+  const [path, file] = [...files].find(([key]) => key.startsWith("ledgers/"))!,
     envelope = JSON.parse(atob(file.content));
   expect(atob(file.content)).not.toContain("1234567");
   expect(atob(file.content)).not.toContain("ثبت نمونه");

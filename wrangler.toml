@@ -14,13 +14,5 @@ binding = "ASSETS"
 not_found_handling = "single-page-application"
 run_worker_first = ["/api/*"]
 
-[[durable_objects.bindings]]
-name = "ACCOUNTS"
-class_name = "AccountVault"
-
-[[migrations]]
-tag = "accounts-v1"
-new_sqlite_classes = ["AccountVault"]
-
 # Configure GITHUB_DATA_REPO as a dashboard variable.
 # Server secrets: GITHUB_DATA_TOKEN, AUTH_PEPPER, LEDGER_ENCRYPTION_KEY.

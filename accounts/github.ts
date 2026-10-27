@@ -20,6 +20,14 @@ export const documentSchema = z.object({
   undo: ledgerSchema.nullable(),
 });
 export type LedgerDocument = z.infer<typeof documentSchema>;
+const accountSchema = z.object({
+  id: z.string().uuid(),
+  username: z.string().regex(/^[a-z0-9_]{3,32}$/),
+  salt: z.string().min(16).max(128),
+  verifier: z.string().min(32).max(128),
+  createdAt: z.string().datetime(),
+});
+export type StoredAccount = z.infer<typeof accountSchema>;
 const encrypted = z.object({
   version: z.literal(1),
   iv: z.string().max(30),
@@ -30,7 +38,7 @@ export class GitHubLedger {
     private env: DataEnv,
     private upstream: typeof fetch = fetch.bind(globalThis),
   ) {}
-  private async request(
+  async request(
     path: string,
     method = "GET",
     body?: unknown,
@@ -81,6 +89,34 @@ export class GitHubLedger {
     if (!/^[a-f0-9-]{36}$/.test(userId))
       throw new AccountError(500, "شناسه حساب معتبر نیست");
     return `/contents/ledgers/${userId}.json`;
+  }
+  private accountPath(username: string) {
+    if (!/^[a-z0-9_]{3,32}$/.test(username))
+      throw new AccountError(400, "نام کاربری معتبر نیست");
+    return `/contents/accounts/${username}.json`;
+  }
+  async account(username: string): Promise<StoredAccount | null> {
+    await this.checkPrivate();
+    const response = await this.request(this.accountPath(username));
+    if (response.status === 404) return null;
+    if (!response.ok) throw new AccountError(503, "خواندن حساب ممکن نشد");
+    try {
+      const file = (await response.json()) as { content?: string; encoding?: string };
+      if (file.encoding !== "base64" || typeof file.content !== "string") throw Error();
+      return accountSchema.parse(JSON.parse(new TextDecoder().decode(unbase64(file.content.replace(/\s/g, "")))));
+    } catch {
+      throw new AccountError(503, "حساب خصوصی معتبر نیست");
+    }
+  }
+  async createAccount(account: StoredAccount) {
+    await this.checkPrivate();
+    const response = await this.request(this.accountPath(account.username), "PUT", {
+      message: "Create Cheghad private account",
+      content: base64(new TextEncoder().encode(JSON.stringify(accountSchema.parse(account)))),
+    });
+    if (response.status === 409 || response.status === 422)
+      throw new AccountError(409, "این نام کاربری قابل استفاده نیست");
+    if (!response.ok) throw new AccountError(503, "ساخت حساب ممکن نشد");
   }
   async read(userId: string) {
     await this.checkPrivate();

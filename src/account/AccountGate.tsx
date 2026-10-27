@@ -1,4 +1,4 @@
-import { isDemoMode, setDemoMode } from "./mode";
+import { isDemoMode, setDemoMode, setLocalAccountUser } from "./mode";
 import { demoLedger } from "../demo";
 import { purge, save } from "../store";
 import {
@@ -15,6 +15,16 @@ import {
   passwordCredential,
   resetAccountCache,
 } from "./api";
+const LOCAL_ACCOUNTS = "cheghad-local-accounts-v1";
+const LOCAL_SESSION = "cheghad-local-session-v1";
+const localAccounts = (): Record<string, string> => {
+  try {
+    const raw = localStorage.getItem(LOCAL_ACCOUNTS);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
 const AccountContext = createContext<{
   username: string;
   logout: () => Promise<void>;
@@ -26,7 +36,7 @@ export function AccountBar() {
       <span>
         {isDemoMode()
           ? "حالت دمو · داده‌های نمونه و جدا از دفتر واقعی"
-          : "حساب " + account.username + " · ذخیره خصوصی"}
+          : "حساب " + account.username + " · ذخیره در این مرورگر"}
       </span>
       <button className="mini" onClick={() => void account.logout()}>
         {isDemoMode() ? "بازگشت به ورود" : "خروج از حساب"}
@@ -36,12 +46,20 @@ export function AccountBar() {
 }
 export default function AccountGate({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<string | null>(null),
-    [loading, setLoading] = useState(cloudEnabled),
+    [loading, setLoading] = useState(true),
     [signup, setSignup] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   useEffect(() => {
-    if (!cloudEnabled) return;
+    if (!cloudEnabled) {
+      const saved = localStorage.getItem(LOCAL_SESSION);
+      if (saved && /^[a-z0-9_]{3,32}$/.test(saved) && localAccounts()[saved]) {
+        setLocalAccountUser(saved);
+        setUser(saved);
+      }
+      setLoading(false);
+      return;
+    }
     let active = true;
     accountRequest("/accounts/session")
       .then((v) => {
@@ -75,6 +93,13 @@ export default function AccountGate({ children }: { children: ReactNode }) {
       return;
     }
     try {
+      if (!cloudEnabled) {
+        localStorage.removeItem(LOCAL_SESSION);
+        setLocalAccountUser(null);
+        setUser(null);
+        setError("");
+        return;
+      }
       await accountRequest("/accounts/logout", "POST", {});
       resetAccountCache();
       setUser(null);
@@ -97,23 +122,17 @@ export default function AccountGate({ children }: { children: ReactNode }) {
         <h1>{signup ? "حساب خودت را بساز" : "به چقدر خوش آمدی"}</h1>
         <p className="muted">
           با نام کاربری و رمز وارد شو؛ ایمیل یا حساب گوگل لازم نیست. دفتر هر
-          حساب خصوصی و جداست.
+          حساب در همین مرورگر جدا نگه‌داری می‌شود.
         </p>
         {!cloudEnabled && (
           <p className="notice" role="status">
-            ورود و ثبت‌نام حساب هنوز روی این آدرس فعال نشده است. فعلاً می‌توانی
-            دمو را ببینی؛ اطلاعات شخصی در دمو قرار ندارد.
+            حساب و داده‌ها فقط در همین مرورگر ذخیره می‌شوند. پاک‌کردن داده‌های
+            مرورگر آن‌ها را حذف می‌کند؛ از تنظیمات خروجی پشتیبان بگیر.
           </p>
         )}
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            if (!cloudEnabled) {
-              setError(
-                "ورود حساب هنوز روی این آدرس فعال نشده است؛ می‌توانی داشبورد نمونه را در حالت دمو ببینی.",
-              );
-              return;
-            }
             if (busy) return;
             const form = e.currentTarget,
               f = new FormData(form),
@@ -137,11 +156,25 @@ export default function AccountGate({ children }: { children: ReactNode }) {
             setError("");
             try {
               const credential = await passwordCredential(username, password);
-              const result = await accountRequest(
-                "/accounts/" + (signup ? "signup" : "login"),
-                "POST",
-                { username, credential, version: 1 },
-              );
+              let result: { username: string };
+              if (cloudEnabled)
+                result = await accountRequest(
+                  "/accounts/" + (signup ? "signup" : "login"),
+                  "POST",
+                  { username, credential, version: 1 },
+                );
+              else {
+                const accounts = localAccounts();
+                if (signup) {
+                  if (accounts[username]) throw Error("این نام کاربری قابل استفاده نیست");
+                  accounts[username] = credential;
+                  localStorage.setItem(LOCAL_ACCOUNTS, JSON.stringify(accounts));
+                } else if (accounts[username] !== credential)
+                  throw Error("نام کاربری یا رمز نادرست است");
+                localStorage.setItem(LOCAL_SESSION, username);
+                setLocalAccountUser(username);
+                result = { username };
+              }
               form.reset();
               setDemoMode(false);
               resetAccountCache();

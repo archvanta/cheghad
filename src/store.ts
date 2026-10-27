@@ -1,4 +1,4 @@
-import { isDemoMode } from "./account/mode";
+import { isDemoMode, localAccountUser } from "./account/mode";
 import { cloudEnabled, remoteStore } from "./account/api";
 import { openDB } from "idb";
 import {
@@ -11,12 +11,20 @@ import {
 } from "./finance";
 import { initial } from "./data";
 const database = () =>
-  openDB(isDemoMode() ? "cheghad-demo-v1" : "cheghad-v1", 2, {
+  openDB(
+    isDemoMode()
+      ? "cheghad-demo-v1"
+      : localAccountUser()
+        ? `cheghad-user-${localAccountUser()}-v1`
+        : "cheghad-v1",
+    2,
+    {
     upgrade(db) {
       if (!db.objectStoreNames.contains("state")) db.createObjectStore("state");
       if (!db.objectStoreNames.contains("undo")) db.createObjectStore("undo");
     },
-  });
+    },
+  );
 export function migrate(value: unknown): Ledger {
   if (value && typeof value === "object" && "version" in value)
     return ledgerSchema.parse(value);

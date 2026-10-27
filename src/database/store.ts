@@ -10,7 +10,7 @@ class Database extends Dexie {
 export const db = new Database();
 export async function loadState() {
   const record = await db.documents.get("main");
-  return record ? stateSchema.parse(record.data) : emptyState();
+  return record ? migrate(record.data) : emptyState();
 }
 export async function saveState(state: State) {
   const data = stateSchema.parse({
@@ -21,5 +21,23 @@ export async function saveState(state: State) {
   return data;
 }
 export function readBackup(text: string) {
-  return stateSchema.parse(JSON.parse(text));
+  return migrate(JSON.parse(text));
+}
+
+export function migrate(value: unknown): State {
+  if (
+    value &&
+    typeof value === "object" &&
+    "version" in value &&
+    value.version === 1
+  )
+    return stateSchema.parse({
+      ...value,
+      version: 2,
+      categories: [],
+      rules: [],
+      excludedEntryIds: [],
+      history: [],
+    });
+  return stateSchema.parse(value);
 }

@@ -1,6 +1,10 @@
 import { z } from "zod";
 import * as jalaali from "jalaali-js";
-const money = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+export const money = z
+  .number()
+  .int()
+  .nonnegative()
+  .max(Number.MAX_SAFE_INTEGER);
 export const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -13,9 +17,38 @@ export const isoDate = z
       +s.slice(0, 4) <= 2200
     );
   }, "تاریخ معتبر نیست");
+export const categorySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1).max(60),
+  budget: money.nullable(),
+});
+export const ruleSchema = z
+  .object({
+    id: z.string().uuid(),
+    title: z.string().trim().min(1).max(100),
+    kind: z.enum(["income", "expense"]),
+    categoryId: z.string().uuid().optional(),
+    start: isoDate,
+    end: isoDate.nullable(),
+    frequency: z.enum(["daily", "weekly", "monthly"]),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    revisions: z
+      .array(z.object({ from: isoDate, amount: money.nullable() }))
+      .min(1),
+  })
+  .refine((r) => !r.end || r.end >= r.start, "پایان قبل از شروع است")
+  .refine(
+    (r) =>
+      r.revisions[0].from === r.start &&
+      r.revisions.every((v, i) => i === 0 || v.from > r.revisions[i - 1].from),
+    "نسخه‌های مبلغ باید مرتب و یکتا باشند",
+  );
 export const entrySchema = z
   .object({
     id: z.string().uuid(),
+    ruleId: z.string().uuid().optional(),
+    categoryId: z.string().uuid().optional(),
     title: z.string().trim().min(1).max(100),
     kind: z.enum(["income", "expense", "installment"]),
     amount: money.nullable(),
@@ -45,7 +78,13 @@ export const entrySchema = z
   });
 export const stateSchema = z
   .object({
-    version: z.literal(1),
+    version: z.literal(2),
+    categories: z.array(categorySchema),
+    rules: z.array(ruleSchema),
+    excludedEntryIds: z.array(z.string().uuid()),
+    history: z
+      .array(z.object({ date: z.string().datetime(), action: z.string() }))
+      .max(100),
     openingBalance: money,
     reserve: money,
     theme: z.enum(["dark", "light"]),
@@ -54,6 +93,15 @@ export const stateSchema = z
     savedAt: z.string().datetime().nullable(),
   })
   .superRefine((s, ctx) => {
+    for (const list of [s.categories, s.rules])
+      if (new Set(list.map((x) => x.id)).size !== list.length)
+        ctx.addIssue({ code: "custom", message: "شناسه تکراری" });
+    for (const item of [...s.entries, ...s.rules])
+      if (
+        item.categoryId &&
+        !s.categories.some((c) => c.id === item.categoryId)
+      )
+        ctx.addIssue({ code: "custom", message: "دسته نامعتبر" });
     const total = s.entries.reduce(
       (sum, e) => sum + BigInt(e.amount ?? 0),
       BigInt(s.openingBalance) + BigInt(s.reserve),
@@ -66,10 +114,15 @@ export const stateSchema = z
     if (new Set(s.entries.map((e) => e.id)).size !== s.entries.length)
       ctx.addIssue({ code: "custom", message: "شناسه رکورد تکراری" });
   });
+export type Rule = z.infer<typeof ruleSchema>;
 export type Entry = z.infer<typeof entrySchema>;
 export type State = z.infer<typeof stateSchema>;
 export const emptyState = (): State => ({
-  version: 1,
+  version: 2,
+  categories: [],
+  rules: [],
+  excludedEntryIds: [],
+  history: [],
   openingBalance: 0,
   reserve: 0,
   theme: "dark",

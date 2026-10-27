@@ -723,3 +723,33 @@ dialog p {
     break-inside: avoid;
   }
 }
+.planner {
+  display: grid;
+  gap: 20px;
+}
+.planner > p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.planner details {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+}
+.planner details form {
+  max-width: 520px;
+  margin: 20px 0;
+}
+.planner summary {
+  font-size: 14px;
+  line-height: 1.9;
+}
+@media (max-width: 700px) {
+  nav button {
+    padding-inline: 6px;
+    font-size: 10px;
+  }
+  .planner .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}

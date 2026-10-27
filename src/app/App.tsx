@@ -1,3 +1,6 @@
+import { stateSchema } from "../domain/model";
+import Planner from "./Planner";
+import { expandEntries } from "../domain/recurring";
 import {
   useEffect,
   useRef,
@@ -115,11 +118,27 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = state.theme;
   }, [state.theme]);
-  async function commit(next: State) {
+  const [undo, setUndo] = useState<State | null>(null);
+  async function commit(
+    next: State,
+    action = "ویرایش دفتر مالی",
+    isUndo = false,
+  ) {
     setBusy(true);
     setError("");
     try {
-      const saved = await saveState(next);
+      stateSchema.parse({
+        ...next,
+        entries: expandEntries(next, jalaliMonth(today(), 24).end),
+      });
+      const saved = await saveState({
+        ...next,
+        history: [
+          { date: new Date().toISOString(), action },
+          ...(isUndo ? state.history : next.history),
+        ].slice(0, 100),
+      });
+      setUndo(isUndo ? null : state);
       setState(saved);
       return true;
     } catch {
@@ -147,7 +166,7 @@ export default function App() {
   const next = state.entries
     .filter((e) => e.kind === "installment" && remaining(e, today()) > 0)
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
-  const visible = state.entries
+  const visible = expandEntries(state, jalaliMonth(today(), 12).end)
     .filter(
       (e) => (filter === "all" || e.kind === filter) && e.title.includes(query),
     )
@@ -201,6 +220,8 @@ export default function App() {
       const amount = String(f.get("amount")).trim();
       const e = entrySchema.parse({
         id: existing?.id ?? crypto.randomUUID(),
+        ruleId: existing?.ruleId,
+        categoryId: String(f.get("categoryId") || "") || undefined,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         title: f.get("title"),
@@ -248,6 +269,7 @@ export default function App() {
           {[
             ["dashboard", "داشبورد", LayoutDashboard],
             ["entries", "دفتر مالی", List],
+            ["planner", "برنامه و بودجه", List],
             ["settings", "تنظیمات", Settings],
           ].map(([id, label, Icon]) => (
             <button
@@ -302,6 +324,14 @@ export default function App() {
             </button>
           </div>
         </header>
+        {undo && (
+          <button
+            disabled={busy}
+            onClick={() => commit(undo, "بازگردانی آخرین تغییر", true)}
+          >
+            بازگردانی آخرین تغییر
+          </button>
+        )}
         {error && (
           <div className="alert" role="alert">
             {error}
@@ -316,7 +346,9 @@ export default function App() {
                 ? "تصویر مالی تو"
                 : page === "entries"
                   ? "دفتر مالی"
-                  : "تنظیمات و داده‌ها"}
+                  : page === "planner"
+                    ? "برنامه و بودجه"
+                    : "تنظیمات و داده‌ها"}
             </h1>
           </div>
           <button
@@ -340,13 +372,14 @@ export default function App() {
               <strong>{month.label}</strong>
               <button
                 aria-label="ماه بعد"
+                disabled={offset >= 23}
                 onClick={() => setOffset(offset + 1)}
               >
                 <ChevronLeft />
               </button>
               <span>واحد: تومان</span>
             </div>
-            {!state.entries.length && (
+            {!state.entries.length && !state.rules.length && (
               <div className="intro">
                 <div>
                   <strong>از اولین عدد شروع کن.</strong>
@@ -487,7 +520,7 @@ export default function App() {
                   })}
                 </div>
                 <p>
-                  فقط رویدادهای ثبت‌شده؛ تکرار خودکار و خرید طلا هنوز در این
+                  رویدادهای ثبت‌شده و قواعد تکرار فعال؛ خرید طلا هنوز در این
                   نسخه فعال نیست.
                 </p>
                 <details>
@@ -599,6 +632,9 @@ export default function App() {
                           await commit({
                             ...state,
                             entries: state.entries.filter((x) => x.id !== e.id),
+                            excludedEntryIds: e.ruleId
+                              ? [...state.excludedEntryIds, e.id]
+                              : state.excludedEntryIds,
                           });
                       }}
                     >
@@ -620,8 +656,18 @@ export default function App() {
             </div>
           </>
         )}
+        {page === "planner" && (
+          <Planner state={state} commit={commit} busy={busy} money={money} />
+        )}
         {page === "settings" && (
           <div className="settings-grid">
+            <Card title="تاریخچه تغییرات">
+              {state.history.map((h, i) => (
+                <p key={i}>
+                  {new Date(h.date).toLocaleString("fa-IR")} · {h.action}
+                </p>
+              ))}
+            </Card>
             <Card title="پایهٔ مالی">
               <form
                 onSubmit={async (ev) => {
@@ -720,6 +766,20 @@ export default function App() {
               />
             </label>
             <label>
+              دسته‌بندی
+              <select
+                name="categoryId"
+                defaultValue={editor === "new" ? "" : (editor.categoryId ?? "")}
+              >
+                <option value="">بدون دسته</option>
+                {state.categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
               نوع
               <select
                 name="kind"
@@ -791,9 +851,10 @@ export default function App() {
                 if (
                   await commit({
                     ...state,
-                    entries: state.entries.map((e) =>
-                      e.id === payment.id ? updated : e,
-                    ),
+                    entries: [
+                      ...state.entries.filter((e) => e.id !== payment.id),
+                      updated,
+                    ],
                   })
                 )
                   setPayment(null);

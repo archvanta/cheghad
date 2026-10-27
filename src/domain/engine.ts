@@ -1,3 +1,4 @@
+import { expandEntries } from "./recurring";
 import Decimal from "decimal.js";
 import { entrySchema, type Entry, type State } from "./model";
 const exact = (n: Decimal) => {
@@ -46,7 +47,8 @@ export function summary(
   end: string,
   asOf: string,
 ) {
-  const entries = state.entries.filter(
+  const expanded = expandEntries(state, end);
+  const entries = expanded.filter(
     (e) => e.dueDate >= start && e.dueDate <= end,
   );
   const total = (kind: Entry["kind"]) =>
@@ -57,7 +59,7 @@ export function summary(
     );
   const cash = cashBalance(state, asOf);
   // Overdue unpaid records remain obligations. Future receipts remain projections, never cash.
-  const outstanding = state.entries.filter((e) => e.dueDate <= end);
+  const outstanding = expanded.filter((e) => e.dueDate <= end);
   const projected = exact(
     outstanding.reduce(
       (s, e) =>
@@ -89,7 +91,7 @@ export function summary(
 }
 export function dailyForecast(state: State, from: string, to: string) {
   let balance = new Decimal(cashBalance(state, from));
-  const events = state.entries
+  const events = expandEntries(state, to)
     .filter((e) => e.dueDate <= to)
     .map((e) => ({
       date: e.dueDate < from ? from : e.dueDate,

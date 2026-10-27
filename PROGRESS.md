@@ -122,3 +122,15 @@
 - امکانات اختیاری هدف مالی و اعلان مرورگر باقی‌اند؛ نرخ آنلاین و اتصال رسمی اعتباردهنده به دسترسی معتبر آینده نیاز دارند و ادعا نشده‌اند.
 - نتیجه نهایی QA: ۴۷ تست واحد/رابط/ذخیره‌سازی، TypeScript strict، build و ۱۸ تست مرورگر موفق. axe در دو تم و نمای دسکتاپ/موبایل و اندازه تبلت بررسی شد.
 - build تولید از preview با درخواست HTML/CSS/JS و پیمایش واقعی داشبورد، دارایی، سناریو و پیش‌بینی بدون خطای اجرا/asset بررسی شد؛ تصاویر در مسیر ignoredِ test-results موجودند.
+
+## مرحله ۹ — ارسال و مانع انتشار
+
+- همه کدهای مراحل روی `main` مخزن `sadeghimohammadamin83-ship-it/cheghad` ارسال شدند؛ SHA کد بررسی‌شده: `428aeccac0894a356ef19079adf5f7af24c3ec15`.
+- CI واقعی گیت‌هاب موفق شد: https://github.com/sadeghimohammadamin83-ship-it/cheghad/actions/runs/40510343610
+- اجرای Deploy Pages پس از تست/build، در `actions/configure-pages@v5` شکست خورد: `Get Pages site failed ... Not Found`.
+- گزارش انتشار: https://github.com/sadeghimohammadamin83-ship-it/cheghad/actions/runs/40510343465
+- آدرس مورد انتظار سایت با درخواست واقعی HTTP 404 می‌دهد؛ انتشار موفق ادعا نمی‌شود.
+- اقدام لازم با دسترسی مدیریتی: Settings → Pages → Build and deployment → Source = GitHub Actions؛ سپس اجرای ناموفق Deploy Pages را Re-run کنید یا workflow را دستی اجرا کنید.
+- API گیت‌هاب در این محیط Forbidden است؛ از مسیر عمومی HTML وضعیت CI و علت شکست بررسی شد. فعال‌سازی اولیه Pages نیازمند تنظیم مدیریتی است؛ توکن معمول GITHUB_TOKEN workflow آن را فعال نمی‌کند.
+- دستورات نصب/اجرای مجدد و افزودن دامنه‌های API/سایت در draft محیط cloud ذخیره شده‌اند. برای اعمال این تنظیمات محیط، تغییرات را در Environment settings مرور و Save کرده و محیط را Publish کنید. انتشار محیط cloud با انتشار سایت Pages متفاوت است.
+- این commit فقط گزارش وضعیت را به‌روزرسانی می‌کند؛ کد برنامه نسبت به اجرای CI موفق تغییری ندارد.

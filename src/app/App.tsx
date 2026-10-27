@@ -1,3 +1,4 @@
+import DateField from "./DateField";
 import { lazy, Suspense } from "react";
 
 import { goldPortfolio } from "../domain/gold";
@@ -46,7 +47,14 @@ import {
   paid,
   dailyForecast,
 } from "../domain/engine";
-import { loadUndo, loadState, saveState, readBackup } from "../database/store";
+import {
+  purgeData,
+  loadUndo,
+  loadState,
+  saveState,
+  readBackup,
+} from "../database/store";
+const Setup = lazy(() => import("./Setup"));
 const Insights = lazy(() => import("./Insights"));
 const Simulator = lazy(() => import("./Simulator"));
 const Gold = lazy(() => import("./Gold"));
@@ -139,7 +147,9 @@ export default function App() {
       .then((s) => {
         setState(s);
         setReady(true);
-        void loadUndo().then(setUndo);
+        void loadUndo()
+          .then(setUndo)
+          .catch(() => setUndo(null));
       })
       .catch(() =>
         setError(
@@ -450,6 +460,9 @@ export default function App() {
               <Plus size={18} /> ثبت جدید
             </button>
           </div>
+          {!state.onboarded && page === "dashboard" && (
+            <Setup state={state} commit={commit} busy={busy} />
+          )}
           {page === "dashboard" && (
             <>
               <div className="month-picker">
@@ -922,6 +935,21 @@ export default function App() {
                 </form>
               </Card>
               <Card title="مالکیت اطلاعات">
+                <button
+                  onClick={async () => {
+                    if (
+                      await commit(
+                        { ...state, onboarded: false, setupStep: 0 },
+                        "نمایش راهنما",
+                      )
+                    ) {
+                      setPage("dashboard");
+                      location.hash = "dashboard";
+                    }
+                  }}
+                >
+                  نمایش راه‌اندازی اولیه
+                </button>
                 <p>
                   داده‌ها به هیچ سروری ارسال نمی‌شوند. فایل پشتیبان حاوی اطلاعات
                   خصوصی است؛ آن را در مخزن عمومی قرار نده.
@@ -947,8 +975,17 @@ export default function App() {
                   onClick={async () => {
                     if (
                       confirm("همه اطلاعات محلی حذف شوند؟ ابتدا پشتیبان بگیر.")
-                    )
-                      await commit(emptyState());
+                    ) {
+                      setBusy(true);
+                      try {
+                        setState(await purgeData());
+                        setUndo(null);
+                      } catch {
+                        setError("حذف اطلاعات انجام نشد");
+                      } finally {
+                        setBusy(false);
+                      }
+                    }
                   }}
                 >
                   حذف همه داده‌ها
@@ -1075,17 +1112,12 @@ export default function App() {
                   : String(editor.amount / 10),
                 false,
               )}
-              <label>
-                تاریخ سررسید (میلادی، نمایش شمسی)
-                <input
-                  name="date"
-                  type="date"
-                  required
-                  min="1900-01-01"
-                  max="2200-12-31"
-                  defaultValue={editor === "new" ? today() : editor.dueDate}
-                />
-              </label>
+              <DateField
+                name="date"
+                label="تاریخ سررسید"
+                calendar={state.calendar}
+                defaultValue={editor === "new" ? today() : editor.dueDate}
+              />
               <label className="checkbox">
                 <input
                   name="confirmed"
@@ -1144,16 +1176,12 @@ export default function App() {
                 "مبلغ پرداخت یا دریافت (تومان)",
                 String(remaining(payment) / 10),
               )}
-              <label>
-                تاریخ واقعی (میلادی)
-                <input
-                  name="date"
-                  type="date"
-                  required
-                  max={today()}
-                  defaultValue={today()}
-                />
-              </label>
+              <DateField
+                name="date"
+                label="تاریخ واقعی"
+                calendar={state.calendar}
+                max={today()}
+              />
               <button className="primary" disabled={busy}>
                 تأیید ثبت
               </button>

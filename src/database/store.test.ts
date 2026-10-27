@@ -28,3 +28,11 @@ it("نسخه قبل برای Undo در IndexedDB می‌ماند و بازگرد
   expect((await loadState()).openingBalance).toBe(100);
   expect(await loadUndo()).toBeNull();
 });
+it("حذف همه اطلاعات، نسخه Undo را هم پاک می‌کند", async () => {
+  const { purgeData, loadUndo } = await import("./store");
+  await saveState({ ...emptyState(), openingBalance: 100 });
+  await saveState({ ...emptyState(), openingBalance: 200 });
+  await purgeData();
+  expect(await db.documents.count()).toBe(0);
+  expect(await loadUndo()).toBeNull();
+});

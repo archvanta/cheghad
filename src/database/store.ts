@@ -69,3 +69,11 @@ export async function loadUndo() {
   const record = await db.undo.get("main");
   return record ? migrate(record.data) : null;
 }
+
+export async function purgeData() {
+  await db.transaction("rw", db.documents, db.undo, async () => {
+    await db.documents.clear();
+    await db.undo.clear();
+  });
+  return emptyState();
+}

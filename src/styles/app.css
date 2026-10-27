@@ -896,3 +896,27 @@ td {
     font-size: 12px;
   }
 }
+.date-field {
+  margin: 0 0 18px;
+  padding: 12px;
+}
+.date-selects {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1.3fr;
+  gap: 8px;
+}
+.date-selects label {
+  margin: 0;
+  font-size: 11px;
+}
+.date-selects select {
+  padding: 8px 4px;
+}
+.setup {
+  margin-bottom: 24px;
+  border-color: var(--accent);
+}
+.setup > h2 {
+  color: var(--accent);
+  font-size: 17px;
+}

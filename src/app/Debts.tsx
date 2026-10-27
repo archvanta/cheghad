@@ -1,3 +1,4 @@
+import DateField from "./DateField";
 import { useState, type FormEvent } from "react";
 import {
   debtSchema,
@@ -202,10 +203,11 @@ export default function Debts({
               مبلغ قسط (تومان؛ خالی = نامشخص)
               <input name="amount" inputMode="decimal" />
             </label>
-            <label>
-              سررسید قسط (میلادی)
-              <input name="due" type="date" defaultValue={today()} required />
-            </label>
+            <DateField
+              name="due"
+              label="سررسید قسط"
+              calendar={state.calendar}
+            />
             <label className="checkbox">
               <input name="confirmed" type="checkbox" />
               مبلغ و تاریخ تأیید شده‌اند

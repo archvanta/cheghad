@@ -1,3 +1,4 @@
+import DateField from "./DateField";
 import { useState, type FormEvent } from "react";
 import {
   goldAssetSchema,
@@ -138,16 +139,13 @@ export default function Gold({
                 }
               />
             </label>
-            <label>
-              تاریخ قیمت
-              <input
-                name="priceDate"
-                type="date"
-                max={today()}
-                required
-                defaultValue={asset?.priceDate ?? today()}
-              />
-            </label>
+            <DateField
+              label="تاریخ قیمت"
+              name="priceDate"
+              defaultValue={asset?.priceDate ?? today()}
+              max={today()}
+              calendar={state.calendar}
+            />
             <label>
               اختلاف فروش با قیمت مرجع (درصد)
               <input
@@ -261,16 +259,13 @@ export default function Gold({
                 />
               </label>
             ))}
-            <label>
-              تاریخ معامله
-              <input
-                name="date"
-                type="date"
-                required
-                max={today()}
-                defaultValue={trade?.date ?? today()}
-              />
-            </label>
+            <DateField
+              label="تاریخ معامله"
+              name="date"
+              defaultValue={trade?.date ?? today()}
+              max={today()}
+              calendar={state.calendar}
+            />
             <label>
               یادداشت معامله
               <textarea name="notes" defaultValue={trade?.notes} />

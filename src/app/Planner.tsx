@@ -1,3 +1,4 @@
+import DateField from "./DateField";
 import { useState, type FormEvent } from "react";
 import {
   categorySchema,
@@ -138,17 +139,11 @@ export default function Planner({
                 <option value="daily">روزانه</option>
               </select>
             </label>
-            <label>
-              شروع تکرار (میلادی)
-              <input
-                name="start"
-                type="date"
-                required
-                defaultValue={today()}
-                min="1900-01-01"
-                max="2198-01-01"
-              />
-            </label>
+            <DateField
+              name="start"
+              label="شروع تکرار"
+              calendar={state.calendar}
+            />
             <label>
               پایان تکرار (اختیاری، میلادی)
               <input name="end" type="date" min="1900-01-01" max="2200-01-01" />

@@ -1,0 +1,20 @@
+# Configuration template only. Do not deploy until reviewed and authorized.
+name = "cheghad-gemini-api"
+main = "worker.ts"
+compatibility_date = "2026-10-01"
+[vars]
+GEMINI_MODEL = "gemini-2.5-flash"
+ALLOWED_ORIGINS = "http://localhost:5173"
+ACCESS_TEAM_DOMAIN = ""
+ACCESS_AUDIENCE = ""
+ALLOWED_EMAILS = ""
+AI_REQUESTS_PER_MINUTE = "5"
+AI_REQUESTS_PER_DAY = "30"
+AI_TOKENS_PER_DAY = "100000"
+[[durable_objects.bindings]]
+name = "AI_BUDGET"
+class_name = "AiBudget"
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AiBudget"]
+# GEMINI_API_KEY must be a server Secret, never a [vars] entry.
